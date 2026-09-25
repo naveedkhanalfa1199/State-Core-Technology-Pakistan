@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% from "admin/_forms.html" import field, post, check with context %}
+{% block content %}
+<div class="bar"><h1>{{ cfg.label }}</h1><a class="btn-s" href="/admin/pages/{{ sec.page_id }}">Back to page</a></div>
+<form class="panel" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for f in cfg.fields %}{{ field(f, cfg.labels.get(f, FIELD_LABELS[f]), sec|attr(f), f in LONG_FIELDS, 'Paste a link, for example a Supabase Storage public URL.' if f == 'image_url' else '') }}{% endfor %}
+  <label class="f"><span>Background</span><select name="style">
+    {% for v, l in [('light','Light'),('tint','Soft tint'),('dark','Dark')] %}<option value="{{ v }}"{% if sec.style == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+  {{ check('is_visible', 'Visible on the website', sec.is_visible) }}
+  <button class="btn-p" type="submit">Save section</button>
+</form>
+{% if cfg.box_fields %}
+<div class="bar"><h2>Boxes in this section</h2><a class="btn-p" href="/admin/sections/{{ sec.id }}/boxes/new">Add {{ cfg.box_name }}</a></div>
+<div class="panel"><table class="tbl"><tbody>
+{% for b in sec.boxes %}<tr>
+  <td><b>{{ b.title or b.text[:40] or '(empty)' }}</b>{% if not b.is_visible %} <em>(hidden)</em>{% endif %}</td>
+  <td class="acts"><a class="btn-s" href="/admin/boxes/{{ b.id }}">Edit</a>
+    {{ post('/admin/boxes/%d/move/up' % b.id, 'Up') }}{{ post('/admin/boxes/%d/move/down' % b.id, 'Down') }}
+    {{ post('/admin/boxes/%d/toggle' % b.id, 'Hide' if b.is_visible else 'Show') }}
+    {{ post('/admin/boxes/%d/delete' % b.id, 'Delete', 'danger', 'Delete this box?') }}</td>
+</tr>{% else %}<tr><td>Nothing here yet. Use the button above to add a {{ cfg.box_name }}.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+{% endblock %}

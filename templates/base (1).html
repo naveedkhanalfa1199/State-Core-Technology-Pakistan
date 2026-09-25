@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page is defined and page %}{{ page.title }} | {% endif %}{{ site.site_name }}</title>
+<meta name="description" content="{% if page is defined and page and page.meta_description %}{{ page.meta_description }}{% else %}{{ site.meta_description }}{% endif %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+<style>:root{--brand:{{ site.brand_color }};--accent:{{ site.accent_color }}}</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="logo" href="/">{% if site.logo_url %}<img src="{{ site.logo_url|safe_url }}" alt="">{% else %}<span class="logo__mark"></span>{% endif %}<span>{{ site.site_name }}</span></a>
+    <button class="burger" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+    <nav id="nav" class="nav" aria-label="Main">
+      {% for p in nav_pages %}<a href="{{ '/' if p.slug == 'home' else '/' ~ p.slug }}"{% if page is defined and page and page.id == p.id %} aria-current="page"{% endif %}>{{ p.title }}</a>{% endfor %}
+      {% if site.header_cta_text %}<a class="btn btn--accent" href="{{ site.header_cta_url|safe_url }}">{{ site.header_cta_text }}</a>{% endif %}
+    </nav>
+  </div>
+</header>
+{% if is_admin and page is defined and page %}<a class="editbar" href="/admin/pages/{{ page.id }}">Edit this page</a>{% endif %}
+<main>{% block content %}{% endblock %}</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <div><strong class="foot__name">{{ site.site_name }}</strong><p>{{ site.tagline }}</p></div>
+    <nav aria-label="Footer">{% for p in nav_pages %}<a href="{{ '/' if p.slug == 'home' else '/' ~ p.slug }}">{{ p.title }}</a>{% endfor %}</nav>
+    <div class="foot__contact">
+      {% if site.email %}<a href="mailto:{{ site.email }}">{{ site.email }}</a>{% endif %}
+      {% if site.phone %}<span>{{ site.phone }}</span>{% endif %}
+      {% for k, label in [('github','GitHub'),('linkedin','LinkedIn'),('instagram','Instagram'),('x_twitter','X')] %}{% if site[k] %}<a href="{{ site[k]|safe_url }}" rel="noopener" target="_blank">{{ label }}</a>{% endif %}{% endfor %}
+    </div>
+  </div>
+  <div class="wrap foot__legal">{{ site.footer_text.replace('{year}', year|string) }}</div>
+</footer>
+<script src="{{ url_for('static', filename='js/site.js') }}"></script>
+</body>
+</html>

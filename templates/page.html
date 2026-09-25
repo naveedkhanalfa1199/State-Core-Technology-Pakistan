@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% macro head(s, tag='h2') %}{% if s.heading %}<header class="sec__head"><{{ tag }}>{{ s.heading }}</{{ tag }}>{% if s.subheading %}<p>{{ s.subheading }}</p>{% endif %}</header>{% endif %}{% endmacro %}
+{% macro btn(text, url, cls) %}{% if text %}<a class="btn {{ cls }}" href="{{ url|safe_url }}">{{ text }}</a>{% endif %}{% endmacro %}
+{% block content %}
+{% if not sections %}<section class="sec sec--light"><div class="wrap sec__head"><h1>{{ page.title }}</h1><p>This page has no content yet.</p></div></section>{% endif %}
+{% for s in sections %}
+{% set boxes = s.boxes | selectattr('is_visible') | list %}
+{% if s.type == 'hero' %}
+<section class="hero"><div class="wrap hero__in">
+  <div class="hero__copy">
+    <h1>{{ s.heading }}</h1>
+    {% if s.subheading %}<p class="lead">{{ s.subheading }}</p>{% endif %}
+    <div class="btns">{{ btn(s.button_text, s.button_url, 'btn--primary') }}{{ btn(s.button2_text, s.button2_url, 'btn--ghost') }}</div>
+  </div>
+  <div class="browser" aria-hidden="true">
+    <div class="browser__bar"><i></i><i></i><i></i><span>yoursite.com</span></div>
+    <div class="browser__body">
+      {% if s.image_url %}<img src="{{ s.image_url|safe_url }}" alt="">{% else %}
+      <div class="sk sk--h"></div><div class="sk"></div><div class="sk sk--s"></div>
+      <div class="chips">{% for b in boxes %}<span>{{ b.title }}</span>{% endfor %}</div>{% endif %}
+    </div>
+  </div>
+</div></section>
+
+{% elif s.type == 'cards' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
+  <div class="grid">{% for b in boxes %}<article class="card">
+    {% if b.icon %}<div class="card__icon">{{ b.icon|icon }}</div>{% endif %}
+    <h3>{{ b.title }}</h3>{% if b.text %}<p>{{ b.text }}</p>{% endif %}
+    {% if b.link_text %}<a class="card__link" href="{{ b.link_url|safe_url }}">{{ b.link_text }}</a>{% endif %}
+  </article>{% endfor %}</div>
+</div></section>
+
+{% elif s.type == 'text' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap split{% if not s.image_url %} split--one{% endif %}">
+  <div>{{ head(s, 'h1' if loop.first else 'h2') }}<div class="prose">{{ s.body|paragraphs }}</div>{% if s.button_text %}<p>{{ btn(s.button_text, s.button_url, 'btn--primary') }}</p>{% endif %}</div>
+  {% if s.image_url %}<img class="split__img" src="{{ s.image_url|safe_url }}" alt="" loading="lazy">{% endif %}
+</div></section>
+
+{% elif s.type == 'stats' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
+  <ul class="stats">{% for b in boxes %}<li><strong>{{ b.title }}</strong><span>{{ b.text }}</span></li>{% endfor %}</ul>
+</div></section>
+
+{% elif s.type == 'process' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
+  <ol class="steps">{% for b in boxes %}<li><h3>{{ b.title }}</h3><p>{{ b.text }}</p></li>{% endfor %}</ol>
+</div></section>
+
+{% elif s.type == 'portfolio' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
+  <div class="grid">{% for b in boxes %}<article class="proj">
+    {% if b.image_url %}<img src="{{ b.image_url|safe_url }}" alt="" loading="lazy">{% else %}<div class="proj__ph" style="--h:{{ b.title|hue }}"><span>{{ b.title[:1] }}</span></div>{% endif %}
+    <div class="proj__body">{% if b.tag %}<span class="pill">{{ b.tag }}</span>{% endif %}<h3>{{ b.title }}</h3>{% if b.text %}<p>{{ b.text }}</p>{% endif %}
+    {% if b.link_text %}<a class="card__link" href="{{ b.link_url|safe_url }}">{{ b.link_text }}</a>{% endif %}</div>
+  </article>{% endfor %}</div>
+  {% if s.button_text %}<p class="more">{{ btn(s.button_text, s.button_url, 'btn--primary') }}</p>{% endif %}
+</div></section>
+
+{% elif s.type == 'testimonials' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
+  <div class="grid">{% for b in boxes %}<figure class="quote"><blockquote>{{ b.text }}</blockquote><figcaption><strong>{{ b.title }}</strong>{% if b.tag %}<span>{{ b.tag }}</span>{% endif %}</figcaption></figure>{% endfor %}</div>
+</div></section>
+
+{% elif s.type == 'faq' %}
+<section class="sec sec--{{ s.style }}"><div class="wrap wrap--narrow">{{ head(s, 'h1' if loop.first else 'h2') }}
+  {% for b in boxes %}<details class="faq"><summary>{{ b.title }}</summary><p>{{ b.text }}</p></details>{% endfor %}
+</div></section>
+
+{% elif s.type == 'cta' %}
+<section class="cta"><div class="wrap cta__in"><div><h2>{{ s.heading }}</h2>{% if s.subheading %}<p>{{ s.subheading }}</p>{% endif %}</div>{{ btn(s.button_text, s.button_url, 'btn--dark') }}</div></section>
+
+{% elif s.type == 'contact' %}
+<section class="sec sec--{{ s.style }}" id="contact"><div class="wrap contact">
+  <div>{{ head(s, 'h1' if loop.first else 'h2') }}{% if s.body %}<div class="prose">{{ s.body|paragraphs }}</div>{% endif %}
+    <ul class="info">
+      {% if site.email %}<li><span>Email</span><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>{% endif %}
+      {% if site.phone %}<li><span>Phone</span>{{ site.phone }}</li>{% endif %}
+      {% if site.address %}<li><span>Location</span>{{ site.address }}</li>{% endif %}
+    </ul>
+  </div>
+  <form class="form" method="post" action="/contact-submit">
+    {% for cat, msg in get_flashed_messages(with_categories=true) %}<p class="flash flash--{{ cat }}" role="status">{{ msg }}</p>{% endfor %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="slug" value="{{ page.slug }}">
+    <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <label>Your name<input name="name" required maxlength="120" autocomplete="name"></label>
+    <label>Email<input type="email" name="email" required maxlength="200" autocomplete="email"></label>
+    <label>Subject<input name="subject" maxlength="200"></label>
+    <label>Message<textarea name="message" rows="6" required maxlength="5000"></textarea></label>
+    <button class="btn btn--primary" type="submit">Send message</button>
+  </form>
+</div></section>
+{% endif %}
+{% endfor %}
+{% endblock %}

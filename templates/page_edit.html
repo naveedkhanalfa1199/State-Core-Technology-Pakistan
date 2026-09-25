@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% from "admin/_forms.html" import field, post, check with context %}
+{% block content %}
+<div class="bar"><h1>{{ page.title if page else 'New page' }}</h1>
+  {% if page %}<a class="btn-s" href="{{ '/' if page.slug == 'home' else '/' ~ page.slug }}" target="_blank" rel="noopener">View page</a>{% endif %}</div>
+<form class="panel" method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ field('title', 'Page title', page.title if page else '', hint='Shown in the menu and the browser tab.') }}
+  {{ field('slug', 'Web address', page.slug if page else '', hint='Letters, numbers and hyphens. Example: about-us') }}
+  {{ field('meta_description', 'Search description', page.meta_description if page else '', hint='One sentence that appears in Google results.') }}
+  {{ check('show_in_nav', 'Show in the menu', page.show_in_nav if page else True) }}
+  {{ check('is_published', 'Published (visible to visitors)', page.is_published if page else True) }}
+  <button class="btn-p" type="submit">Save page</button>
+</form>
+{% if page %}
+<div class="bar"><h2>Sections</h2></div>
+<div class="panel">
+<table class="tbl"><thead><tr><th>Type</th><th>Content</th><th>Status</th><th></th></tr></thead><tbody>
+{% for s in page.sections %}<tr>
+  <td>{{ SECTION_TYPES[s.type].label }}</td>
+  <td>{{ s.heading or '(no heading)' }}</td>
+  <td>{{ 'Visible' if s.is_visible else 'Hidden' }}</td>
+  <td class="acts"><a class="btn-s" href="/admin/sections/{{ s.id }}">Edit</a>
+    {{ post('/admin/sections/%d/move/up' % s.id, 'Up') }}{{ post('/admin/sections/%d/move/down' % s.id, 'Down') }}
+    {{ post('/admin/sections/%d/toggle' % s.id, 'Hide' if s.is_visible else 'Show') }}
+    {{ post('/admin/sections/%d/delete' % s.id, 'Delete', 'danger', 'Delete this section and everything in it?') }}</td>
+</tr>{% else %}<tr><td colspan="4">No sections yet. Add one below.</td></tr>{% endfor %}
+</tbody></table>
+<form class="addrow" method="post" action="/admin/pages/{{ page.id }}/sections/add">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="f"><span>Add a section</span><select name="type">{% for k, v in SECTION_TYPES.items() %}<option value="{{ k }}">{{ v.label }}</option>{% endfor %}</select></label>
+  <button class="btn-p" type="submit">Add section</button>
+</form>
+</div>
+{% endif %}
+{% endblock %}

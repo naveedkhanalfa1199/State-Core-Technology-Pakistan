@@ -1,0 +1,9 @@
+{% macro field(name, label, value='', long=False, hint='', type='text', list='') %}
+<label class="f"><span>{{ label }}</span>
+{% if long %}<textarea name="{{ name }}" rows="6">{{ value or '' }}</textarea>{% else %}<input type="{{ type }}" name="{{ name }}" value="{{ value or '' }}"{% if list %} list="{{ list }}"{% endif %}>{% endif %}
+{% if hint %}<small>{{ hint }}</small>{% endif %}</label>
+{% endmacro %}
+{% macro post(url, label, cls='', confirm='') %}
+<form method="post" action="{{ url }}" class="inline"{% if confirm %} onsubmit="return confirm('{{ confirm }}')"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-s {{ cls }}" type="submit">{{ label }}</button></form>
+{% endmacro %}
+{% macro check(name, label, on) %}<label class="chk"><input type="checkbox" name="{{ name }}"{% if on %} checked{% endif %}> {{ label }}</label>{% endmacro %}

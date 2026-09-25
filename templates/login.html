@@ -1,0 +1,11 @@
+{% extends "admin/base.html" %}
+{% from "admin/_forms.html" import field with context %}
+{% block content %}
+<form class="panel login" method="post">
+  <h1>Admin login</h1>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ field('username', 'Username') }}
+  {{ field('password', 'Password', type='password') }}
+  <button class="btn-p" type="submit">Log in</button>
+</form>
+{% endblock %}
