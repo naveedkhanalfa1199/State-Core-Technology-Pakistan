@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="stat-row">
+  <div class="panel"><strong>{{ counts.pages }}</strong> pages</div>
+  <div class="panel"><strong>{{ counts.sections }}</strong> sections</div>
+  <div class="panel"><strong>{{ counts.boxes }}</strong> boxes</div>
+  <div class="panel"><strong>{{ unread }}</strong> unread messages</div>
+</div>
+<div class="panel">
+  <h2>How this works</h2>
+  <p>The website is built from <b>pages</b>. Each page has <b>sections</b> (a banner, a set of cards, a contact form and so on). Sections that show a list hold <b>boxes</b> (one card, project, step or question each).</p>
+  <p>Go to <a href="/admin/pages">Pages and content</a> to add, edit, hide, reorder or delete any of them. Change the site name, colors, contact details and footer under <a href="/admin/settings">Site settings</a>.</p>
+</div>
+{% endblock %}

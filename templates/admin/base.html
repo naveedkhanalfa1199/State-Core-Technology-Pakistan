@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin | {{ site.site_name }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head><body>
+{% if is_admin %}
+<aside class="side">
+  <a class="side__logo" href="/admin">{{ site.site_name }}<small>Admin</small></a>
+  <nav>
+    <a href="/admin">Dashboard</a>
+    <a href="/admin/pages">Pages and content</a>
+    <a href="/admin/settings">Site settings</a>
+    <a href="/admin/messages">Messages{% if unread %} <b class="badge">{{ unread }}</b>{% endif %}</a>
+    <a href="/admin/password">Change password</a>
+    <a href="/" target="_blank" rel="noopener">View website</a>
+  </nav>
+  <form method="post" action="/admin/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-s" type="submit">Log out</button></form>
+</aside>
+{% endif %}
+<main class="main{% if not is_admin %} main--center{% endif %}">
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<p class="flash flash--{{ cat }}" role="status">{{ msg }}</p>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body></html>
