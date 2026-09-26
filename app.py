@@ -1,4 +1,4 @@
-"""FuTuRe FLoW - admin-controlled website (Flask + SQLAlchemy + Postgres/Supabase)."""
+"""State Core Technology - admin-controlled website (Flask + SQLAlchemy + Postgres/Supabase)."""
 import os
 import re
 import secrets
@@ -192,8 +192,8 @@ LONG_FIELDS = {"body", "text"}
 # On-page editor: text style and image-width choices
 TEXT_SIZES = {"sm": "0.9rem", "md": "", "lg": "1.3rem", "xl": "1.8rem"}
 FONT_STACKS = {
-    "": "", "display": "'Bricolage Grotesque', system-ui, sans-serif",
-    "body": "'Instrument Sans', system-ui, sans-serif",
+    "": "", "display": "'Space Grotesk', system-ui, sans-serif",
+    "body": "'Inter', system-ui, sans-serif",
     "serif": "Georgia, 'Times New Roman', serif", "mono": "'Courier New', monospace",
 }
 SIZE_CHOICES = {"sm": "Small", "md": "Normal", "lg": "Large", "xl": "Extra large"}
@@ -202,13 +202,13 @@ ALIGN_CHOICES = {"left": "Left", "center": "Center", "right": "Right"}
 WIDTH_CHOICES = ("25", "50", "75", "100")
 
 SETTING_DEFAULTS = {
-    "site_name": "FuTuRe FLoW", "tagline": "Web development studio", "logo_url": "",
-    "meta_description": "We design, build and host fast websites and web apps for growing businesses.",
-    "email": "hello@example.com", "phone": "+00 000 0000000", "address": "Your city, Country",
+    "site_name": "State Core Technology", "tagline": "Software house, Pakistan", "logo_url": "",
+    "meta_description": "State Core Technology designs and builds fast, reliable websites, web apps and digital products for growing businesses.",
+    "email": "hello@statecoretechnology.com", "phone": "+92 300 0000000", "address": "Lahore, Pakistan",
     "github": "", "linkedin": "", "instagram": "", "x_twitter": "",
     "header_cta_text": "Start a project", "header_cta_url": "/contact",
-    "footer_text": "© {year} FuTuRe FLoW. All rights reserved.",
-    "brand_color": "#4B3BFF", "accent_color": "#FFCE3A",
+    "footer_text": "© {year} State Core Technology. All rights reserved.",
+    "brand_color": "#6D5BFF", "accent_color": "#1FE0C4",
 }
 RESERVED_SLUGS = {"admin", "static", "contact-submit"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
