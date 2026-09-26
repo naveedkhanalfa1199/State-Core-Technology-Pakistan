@@ -1,4 +1,4 @@
-# FuTuRe FLoW - admin se control hone wali website
+# State Core Technology - admin se control hone wali website
 
 Public side normal website hai (Home, About, Services, Portfolio, Contact). Sab content `/admin` se badalta hai.
 
@@ -26,6 +26,13 @@ python app.py
 3. Environment variables set karo: `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` (`SECRET_KEY` khud ban jati hai).
 4. Pehli baar chalne par tables ban jate hain aur pehla admin aur sample content ban jata hai.
 5. `/admin` par login karo, phir **Change password** se password badal do.
+
+## Naya (redesigned) look apply karna
+Ye redesign `static/css/site.css`, `seed_data.py` aur `app.py` (fonts + default brand colors) mein hai. Naya content sirf **khaali database** mein khud load hota hai (`Page.query.count() == 0` wali condition), isliye purana content pehle hatana zaroori hai:
+- **Supabase / Postgres par:** Table editor kholo aur `pages` table ke sare rows delete kar do (ya `sections`, `boxes`, `pages` teeno tables truncate kar do — foreign keys cascade se boxes/sections khud delete ho jate hain). App restart hote hi naya seed data khud aa jayega.
+- **Local SQLite par:** `local.db` file delete kar do aur `python app.py` dobara chalao.
+- Admin username/password waisay hi rahenge (wo `admin_users` table mein hain, `pages` mein nahi) — agar unko bhi reset karna ho to `admin_users` table bhi khali kar do, phir `ADMIN_USERNAME`/`ADMIN_PASSWORD` env vars se naya admin ban jayega.
+- Images abhi Lorem Picsum (`picsum.photos`) ke free, licence-free photo URLs hain — koi file upload nahi hui, sirf `image_url` field mein link hai. Admin panel mein har image ke "Change image" button se URL replace kar ke apni asli images (Unsplash, Pexels, ya company ki apni photos) laga sakte ho.
 
 ## Zaroori baatein
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` sirf pehla admin banate waqt use hote hain. Baad mein password panel se badlo.
