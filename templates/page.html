@@ -81,11 +81,17 @@
 
 {% elif s.type == 'portfolio' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid ed-boxlist">{% for b in boxes %}<article class="proj{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}">
+  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card card--photo{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">
     {{ box_toolbar(b) }}
-    <div class="ed-img-wrap">{{ img_edit('box', b.id, b.image_width) }}{% if b.image_url %}<img src="{{ b.image_url|safe_url }}" alt="" loading="lazy" style="width:{{ b.image_width or 100 }}%">{% else %}<div class="proj__ph" style="--h:{{ b.title|hue }}"><span>{{ b.title[:1] }}</span></div>{% endif %}</div>
-    <div class="proj__body" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}"><span class="pill"{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span><h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p>
-    <a class="card__link" href="{{ b.link_url|safe_url }}"{{ ea('box', b.id, 'link_text') }} data-link-field="link_url">{{ b.link_text }}</a></div>
+    <div class="card__bg ed-img-wrap"{% if b.image_url %} style="background-image:url('{{ b.image_url|safe_url }}')"{% endif %}>
+      <img src="{{ b.image_url|safe_url }}" alt="" style="display:none">
+      {{ img_edit('box', b.id, b.image_width) }}
+    </div>
+    <div class="card__body">
+      <div class="card__icon">{% if edit_mode %}<button type="button" class="ed-icon-btn" data-icon-id="{{ b.id }}" data-icon="{{ b.icon }}" title="Change icon">{{ b.icon|icon }}</button>{% else %}{{ b.icon|icon }}{% endif %}</div>
+      <h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p>
+      <a class="card__link" href="{{ b.link_url|safe_url }}"{{ ea('box', b.id, 'link_text') }} data-link-field="link_url">{{ b.link_text }}</a>
+    </div>
   </article>{% endfor %}</div>
   {{ add_box(s) }}
   <p class="more"><a class="btn btn--primary" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a></p>
