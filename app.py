@@ -5,10 +5,11 @@ import secrets
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import (Flask, abort, flash, redirect, render_template, request,
-                   session, url_for)
+from flask import (Flask, abort, flash, jsonify, redirect, render_template,
+                   request, session, url_for)
 from flask_sqlalchemy import SQLAlchemy
 from markupsafe import Markup, escape
+from sqlalchemy import inspect, text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -70,6 +71,11 @@ class Section(db.Model):
     button2_text = db.Column(db.String(300), default="")
     button2_url = db.Column(db.String(300), default="")
     image_url = db.Column(db.String(300), default="")
+    image_width = db.Column(db.String(4), default="100")
+    font_size = db.Column(db.String(4), default="")
+    font_color = db.Column(db.String(20), default="")
+    font_family = db.Column(db.String(20), default="")
+    text_align = db.Column(db.String(10), default="")
     is_visible = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
     boxes = db.relationship("Box", backref="section", cascade="all, delete-orphan",
@@ -84,9 +90,14 @@ class Box(db.Model):
     title = db.Column(db.String(300), default="")
     text = db.Column(db.Text, default="")
     image_url = db.Column(db.String(300), default="")
+    image_width = db.Column(db.String(4), default="100")
     tag = db.Column(db.String(300), default="")
     link_text = db.Column(db.String(300), default="")
     link_url = db.Column(db.String(300), default="")
+    font_size = db.Column(db.String(4), default="")
+    font_color = db.Column(db.String(20), default="")
+    font_family = db.Column(db.String(20), default="")
+    text_align = db.Column(db.String(10), default="")
     is_visible = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
 
@@ -178,6 +189,18 @@ BOX_LABELS = {"icon": "Icon", "title": "Title", "text": "Text", "image_url": "Im
               "tag": "Label", "link_text": "Link text", "link_url": "Link address"}
 LONG_FIELDS = {"body", "text"}
 
+# On-page editor: text style and image-width choices
+TEXT_SIZES = {"sm": "0.9rem", "md": "", "lg": "1.3rem", "xl": "1.8rem"}
+FONT_STACKS = {
+    "": "", "display": "'Bricolage Grotesque', system-ui, sans-serif",
+    "body": "'Instrument Sans', system-ui, sans-serif",
+    "serif": "Georgia, 'Times New Roman', serif", "mono": "'Courier New', monospace",
+}
+SIZE_CHOICES = {"sm": "Small", "md": "Normal", "lg": "Large", "xl": "Extra large"}
+FONT_CHOICES = {"": "Default", "display": "Heading style", "body": "Body style", "serif": "Serif", "mono": "Monospace"}
+ALIGN_CHOICES = {"left": "Left", "center": "Center", "right": "Right"}
+WIDTH_CHOICES = ("25", "50", "75", "100")
+
 SETTING_DEFAULTS = {
     "site_name": "FuTuRe FLoW", "tagline": "Web development studio", "logo_url": "",
     "meta_description": "We design, build and host fast websites and web apps for growing businesses.",
@@ -212,7 +235,10 @@ def csrf_token():
 @app.before_request
 def check_csrf():
     if request.method == "POST":
-        sent = request.form.get("csrf_token", "")
+        if request.is_json:
+            sent = (request.get_json(silent=True) or {}).get("csrf_token", "")
+        else:
+            sent = request.form.get("csrf_token", "")
         if not session.get("_csrf") or not secrets.compare_digest(session["_csrf"], sent):
             abort(400)
 
@@ -265,6 +291,24 @@ def hue(text):
     return sum(ord(c) for c in (text or "x")) % 360
 
 
+def style_attr(obj):
+    parts = []
+    if getattr(obj, "font_size", "") in TEXT_SIZES and TEXT_SIZES.get(obj.font_size):
+        parts.append("font-size:%s" % TEXT_SIZES[obj.font_size])
+    if FONT_STACKS.get(getattr(obj, "font_family", "")):
+        parts.append("font-family:%s" % FONT_STACKS[obj.font_family])
+    if getattr(obj, "font_color", ""):
+        parts.append("color:%s" % obj.font_color)
+    if getattr(obj, "text_align", ""):
+        parts.append("text-align:%s" % obj.text_align)
+    return "; ".join(parts)
+
+
+@app.template_filter("stylevars")
+def stylevars(obj):
+    return style_attr(obj)
+
+
 @app.context_processor
 def inject():
     try:
@@ -273,10 +317,13 @@ def inject():
         unread = Message.query.filter_by(is_read=False).count() if session.get("admin_id") else 0
     except Exception:  # database not reachable yet
         site, nav, unread = dict(SETTING_DEFAULTS), [], 0
+    admin_on = bool(session.get("admin_id"))
     return dict(site=site, nav_pages=nav, unread=unread, csrf_token=csrf_token,
                 year=datetime.utcnow().year, ICON_NAMES=list(ICONS), SECTION_TYPES=SECTION_TYPES,
                 FIELD_LABELS=FIELD_LABELS, BOX_LABELS=BOX_LABELS, LONG_FIELDS=LONG_FIELDS,
-                is_admin=bool(session.get("admin_id")))
+                is_admin=admin_on, edit_mode=admin_on and bool(session.get("edit_mode")),
+                SIZE_CHOICES=SIZE_CHOICES, FONT_CHOICES=FONT_CHOICES, ALIGN_CHOICES=ALIGN_CHOICES,
+                WIDTH_CHOICES=WIDTH_CHOICES)
 
 
 def login_required(fn):
@@ -284,6 +331,15 @@ def login_required(fn):
     def wrapper(*a, **kw):
         if not session.get("admin_id"):
             return redirect(url_for("admin_login"))
+        return fn(*a, **kw)
+    return wrapper
+
+
+def admin_json_required(fn):
+    @wraps(fn)
+    def wrapper(*a, **kw):
+        if not session.get("admin_id"):
+            return jsonify(ok=False, error="Not logged in."), 401
         return fn(*a, **kw)
     return wrapper
 
@@ -321,7 +377,8 @@ def move(items, obj, direction):
 def render_page(page):
     if not page or (not page.is_published and not session.get("admin_id")):
         abort(404)
-    sections = [s for s in page.sections if s.is_visible]
+    edit_on = session.get("admin_id") and session.get("edit_mode")
+    sections = list(page.sections) if edit_on else [s for s in page.sections if s.is_visible]
     return render_template("page.html", page=page, sections=sections)
 
 
@@ -589,6 +646,153 @@ def admin_box_toggle(bid):
     return redirect(url_for("admin_section", sid=box.section_id))
 
 # --------------------------------------------------------------------------
+# On-page editor ("edit mode"): toggle, and small JSON API used by edit.js
+# --------------------------------------------------------------------------
+
+
+@app.post("/admin/edit-mode/<state>")
+@login_required
+def admin_edit_mode(state):
+    session["edit_mode"] = (state == "on")
+    return redirect(request.form.get("next") or url_for("home"))
+
+
+def _kind_obj(kind, obj_id):
+    model = {"section": Section, "box": Box}.get(kind)
+    if not model:
+        abort(400)
+    return model, db.get_or_404(model, obj_id)
+
+
+@app.post("/admin/api/text")
+@admin_json_required
+def api_text():
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    cfg = SECTION_TYPES[obj.type if data.get("kind") == "section" else obj.section.type]
+    allowed = cfg["fields"] if data.get("kind") == "section" else cfg["box_fields"]
+    field = data.get("field")
+    if field not in allowed:
+        return jsonify(ok=False, error="That field can't be edited."), 400
+    limit = 5000 if field in LONG_FIELDS else 300
+    setattr(obj, field, (data.get("value") or "").strip()[:limit])
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/style")
+@admin_json_required
+def api_style():
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    obj.font_size = data.get("font_size") if data.get("font_size") in TEXT_SIZES else ""
+    obj.font_family = data.get("font_family") if data.get("font_family") in FONT_STACKS else ""
+    obj.text_align = data.get("text_align") if data.get("text_align") in ALIGN_CHOICES else ""
+    color = (data.get("font_color") or "").strip()
+    obj.font_color = color if HEX_RE.match(color) else ""
+    db.session.commit()
+    return jsonify(ok=True, style=style_attr(obj))
+
+
+@app.post("/admin/api/image")
+@admin_json_required
+def api_image():
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    obj.image_url = (data.get("url") or "").strip()[:300]
+    width = str(data.get("width") or "100")
+    obj.image_width = width if width in WIDTH_CHOICES else "100"
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/visibility")
+@admin_json_required
+def api_visibility():
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    obj.is_visible = bool(data.get("visible"))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/reorder")
+@admin_json_required
+def api_reorder():
+    data = request.get_json(silent=True) or {}
+    model, ids = {"section": Section, "box": Box}.get(data.get("kind")), data.get("ids") or []
+    if not model or not isinstance(ids, list) or not ids:
+        abort(400)
+    objs = {o.id: o for o in model.query.filter(model.id.in_(ids)).all()}
+    parent_attr = "page_id" if model is Section else "section_id"
+    if len(objs) != len(ids) or len({getattr(o, parent_attr) for o in objs.values()}) != 1:
+        abort(400)
+    for i, oid in enumerate(ids):
+        objs[oid].sort_order = i
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/section/add")
+@admin_json_required
+def api_section_add():
+    data = request.get_json(silent=True) or {}
+    page = db.get_or_404(Page, data.get("page_id"))
+    stype = data.get("type")
+    if stype not in SECTION_TYPES:
+        abort(400)
+    sec = Section(page_id=page.id, type=stype, sort_order=next_order(Section, page_id=page.id),
+                  **SECTION_TYPES[stype]["defaults"])
+    db.session.add(sec)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/section/<int:sid>/delete")
+@admin_json_required
+def api_section_delete(sid):
+    db.session.delete(db.get_or_404(Section, sid))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/box/add")
+@admin_json_required
+def api_box_add():
+    data = request.get_json(silent=True) or {}
+    sec = db.get_or_404(Section, data.get("section_id"))
+    if not SECTION_TYPES[sec.type]["box_fields"]:
+        abort(400)
+    db.session.add(Box(section_id=sec.id, sort_order=next_order(Box, section_id=sec.id)))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/box/<int:bid>/delete")
+@admin_json_required
+def api_box_delete(bid):
+    db.session.delete(db.get_or_404(Box, bid))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/page/add")
+@admin_json_required
+def api_page_add():
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()[:120]
+    slug = clean_slug(title)
+    if not title or not slug:
+        return jsonify(ok=False, error="Page needs a title."), 400
+    if slug in RESERVED_SLUGS or Page.query.filter_by(slug=slug).first():
+        return jsonify(ok=False, error="That page name is already used. Try a different title."), 400
+    page = Page(title=title, slug=slug, sort_order=next_order(Page))
+    db.session.add(page)
+    db.session.commit()
+    session["edit_mode"] = True
+    return jsonify(ok=True, url=("/" if slug == "home" else "/" + slug))
+
+# --------------------------------------------------------------------------
 # Admin: settings and messages
 # --------------------------------------------------------------------------
 
@@ -596,6 +800,7 @@ def admin_box_toggle(bid):
 @app.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def admin_settings():
+    is_ajax = request.headers.get("X-Requested-With") == "fetch"
     if request.method == "POST":
         for key, default in SETTING_DEFAULTS.items():
             val = (request.form.get(key) or "").strip()[:300]
@@ -605,8 +810,12 @@ def admin_settings():
             row.value = val
             db.session.add(row)
         db.session.commit()
+        if is_ajax:
+            return jsonify(ok=True)
         flash("Settings saved.", "ok")
         return redirect(url_for("admin_settings"))
+    if is_ajax:
+        return render_template("admin/_settings_fields.html", values=get_settings())
     return render_template("admin/settings.html", values=get_settings())
 
 
@@ -648,9 +857,35 @@ def ensure_admin():
     db.session.commit()
 
 
+NEW_COLUMNS = {
+    "sections": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
+                 ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
+                 ("text_align", "VARCHAR(10) DEFAULT ''")],
+    "boxes": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
+              ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
+              ("text_align", "VARCHAR(10) DEFAULT ''")],
+}
+
+
+def ensure_columns():
+    """db.create_all() only creates missing TABLES, never new columns on tables that
+    already exist. This adds any columns a newer version of the app introduced, so an
+    already-deployed database (e.g. on Supabase) stays in sync without losing data."""
+    insp = inspect(db.engine)
+    for table, columns in NEW_COLUMNS.items():
+        if table not in insp.get_table_names():
+            continue
+        existing = {c["name"] for c in insp.get_columns(table)}
+        for name, ddl in columns:
+            if name not in existing:
+                db.session.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+    db.session.commit()
+
+
 def init_db():
     with app.app_context():
         db.create_all()
+        ensure_columns()
         ensure_admin()
         if Page.query.count() == 0:
             from seed_data import seed
