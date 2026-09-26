@@ -1,78 +1,114 @@
 {% extends "base.html" %}
-{% macro head(s, tag='h2') %}{% if s.heading %}<header class="sec__head"><{{ tag }}>{{ s.heading }}</{{ tag }}>{% if s.subheading %}<p>{{ s.subheading }}</p>{% endif %}</header>{% endif %}{% endmacro %}
-{% macro btn(text, url, cls) %}{% if text %}<a class="btn {{ cls }}" href="{{ url|safe_url }}">{{ text }}</a>{% endif %}{% endmacro %}
+{% macro head(s, tag='h2') %}{% if s.heading %}<header class="sec__head" data-style-for="section-{{ s.id }}" style="{{ s|stylevars }}"><{{ tag }}{{ ea('section', s.id, 'heading') }}>{{ s.heading }}</{{ tag }}>{% if s.subheading or edit_mode %}<p{{ ea('section', s.id, 'subheading') }}>{{ s.subheading }}</p>{% endif %}</header>{% elif edit_mode %}<header class="sec__head" data-style-for="section-{{ s.id }}" style="{{ s|stylevars }}"><{{ tag }}{{ ea('section', s.id, 'heading') }}>{{ s.heading }}</{{ tag }}><p{{ ea('section', s.id, 'subheading') }}>{{ s.subheading }}</p></header>{% endif %}{% endmacro %}
+{% macro btn(text, url, cls, s, field) %}{% if text or edit_mode %}<a class="btn {{ cls }}" href="{{ url|safe_url }}"{{ ea('section', s.id, field) }} data-link-field="{{ field ~ '_url' if field == 'button' else field ~ '2_url' }}">{{ text }}</a>{% endif %}{% endmacro %}
+{% macro ea(kind, id, field) %}{% if edit_mode %} data-editable data-kind="{{ kind }}" data-id="{{ id }}" data-field="{{ field }}"{% endif %}{% endmacro %}
+{% macro style_btn(kind, id) %}{% if edit_mode %}<button type="button" class="ed-style-btn" data-style-kind="{{ kind }}" data-style-id="{{ id }}" title="Text style, size, color">Aa</button>{% endif %}{% endmacro %}
+{% macro sec_toolbar(s) %}{% if edit_mode %}<div class="ed-toolbar ed-toolbar--sec">
+  <span class="ed-drag" draggable="true" title="Drag to reorder">&#10021;</span>
+  {{ style_btn('section', s.id) }}
+  <button type="button" class="ed-vis" data-vis-kind="section" data-vis-id="{{ s.id }}" data-vis="{{ 'on' if s.is_visible else 'off' }}" title="Hide/show section">{{ 'Hide' if s.is_visible else 'Show' }}</button>
+  <button type="button" class="ed-del" data-del-kind="section" data-del-id="{{ s.id }}" title="Delete section">Delete</button>
+</div>{% endif %}{% endmacro %}
+{% macro box_toolbar(b) %}{% if edit_mode %}<div class="ed-toolbar ed-toolbar--box">
+  <span class="ed-drag" draggable="true" title="Drag to reorder">&#10021;</span>
+  {{ style_btn('box', b.id) }}
+  <button type="button" class="ed-vis" data-vis-kind="box" data-vis-id="{{ b.id }}" data-vis="{{ 'on' if b.is_visible else 'off' }}" title="Hide/show">{{ 'Hide' if b.is_visible else 'Show' }}</button>
+  <button type="button" class="ed-del" data-del-kind="box" data-del-id="{{ b.id }}" title="Delete">Delete</button>
+</div>{% endif %}{% endmacro %}
+{% macro img_edit(kind, id, width) %}{% if edit_mode %}<button type="button" class="ed-img-btn" data-img-kind="{{ kind }}" data-img-id="{{ id }}" data-img-width="{{ width or 100 }}">Change image</button>{% endif %}{% endmacro %}
+{% macro add_box(sec) %}{% if edit_mode and SECTION_TYPES[sec.type].box_fields %}<button type="button" class="ed-add-box" data-add-section="{{ sec.id }}">+ Add {{ SECTION_TYPES[sec.type].box_name }}</button>{% endif %}{% endmacro %}
+
 {% block content %}
-{% if not sections %}<section class="sec sec--light"><div class="wrap sec__head"><h1>{{ page.title }}</h1><p>This page has no content yet.</p></div></section>{% endif %}
+{% if not sections %}<section class="sec sec--light"><div class="wrap sec__head"><h1>{{ page.title }}</h1><p>This page has no content yet.</p>{% if edit_mode %}<p><em>Use "+ Add section" at the bottom of this page to start building it.</em></p>{% endif %}</div></section>{% endif %}
+<div id="ed-sections" data-kind="section" data-page-id="{{ page.id }}">
 {% for s in sections %}
-{% set boxes = s.boxes | selectattr('is_visible') | list %}
+{% set boxes = s.boxes if edit_mode else (s.boxes | selectattr('is_visible') | list) %}
+<div class="ed-section{{ '' if s.is_visible else ' ed-hidden' }}" data-section-id="{{ s.id }}">
+{{ sec_toolbar(s) }}
+
 {% if s.type == 'hero' %}
 <section class="hero"><div class="wrap hero__in">
-  <div class="hero__copy">
-    <h1>{{ s.heading }}</h1>
-    {% if s.subheading %}<p class="lead">{{ s.subheading }}</p>{% endif %}
-    <div class="btns">{{ btn(s.button_text, s.button_url, 'btn--primary') }}{{ btn(s.button2_text, s.button2_url, 'btn--ghost') }}</div>
+  <div class="hero__copy" data-style-for="section-{{ s.id }}" style="{{ s|stylevars }}">
+    <h1{{ ea('section', s.id, 'heading') }}>{{ s.heading }}</h1>
+    <p class="lead"{{ ea('section', s.id, 'subheading') }}>{{ s.subheading }}</p>
+    <div class="btns">
+      <a class="btn btn--primary" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a>
+      <a class="btn btn--ghost" href="{{ s.button2_url|safe_url }}"{{ ea('section', s.id, 'button2_text') }} data-link-field="button2_url">{{ s.button2_text }}</a>
+    </div>
   </div>
   <div class="browser" aria-hidden="true">
-    <div class="browser__bar"><i></i><i></i><i></i><span>https://state-core-technology-pakistan.onrender.com/</span></div>
-    <div class="browser__body">
-      {% if s.image_url %}<img src="{{ s.image_url|safe_url }}" alt="">{% else %}
+    <div class="browser__bar"><i></i><i></i><i></i><span>{{ site.site_name|lower|replace(' ', '') }}.com</span></div>
+    <div class="browser__body ed-img-wrap">
+      {{ img_edit('section', s.id, s.image_width) }}
+      {% if s.image_url %}<img src="{{ s.image_url|safe_url }}" alt="" style="width:{{ s.image_width or 100 }}%">{% else %}
       <div class="sk sk--h"></div><div class="sk"></div><div class="sk sk--s"></div>
-      <div class="chips">{% for b in boxes %}<span>{{ b.title }}</span>{% endfor %}</div>{% endif %}
+      <div class="chips">{% for b in boxes %}<span{{ ea('box', b.id, 'title') }}>{{ b.title }}</span>{% endfor %}
+      {% if edit_mode %}<button type="button" class="ed-add-box ed-add-box--chip" data-add-section="{{ s.id }}">+ Add</button>{% endif %}</div>{% endif %}
     </div>
   </div>
 </div></section>
 
 {% elif s.type == 'cards' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid">{% for b in boxes %}<article class="card">
-    {% if b.icon %}<div class="card__icon">{{ b.icon|icon }}</div>{% endif %}
-    <h3>{{ b.title }}</h3>{% if b.text %}<p>{{ b.text }}</p>{% endif %}
-    {% if b.link_text %}<a class="card__link" href="{{ b.link_url|safe_url }}">{{ b.link_text }}</a>{% endif %}
+  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">
+    {{ box_toolbar(b) }}
+    <div class="card__icon">{% if edit_mode %}<button type="button" class="ed-icon-btn" data-icon-id="{{ b.id }}" data-icon="{{ b.icon }}" title="Change icon">{{ b.icon|icon }}</button>{% else %}{{ b.icon|icon }}{% endif %}</div>
+    <h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p>
+    <a class="card__link" href="{{ b.link_url|safe_url }}"{{ ea('box', b.id, 'link_text') }} data-link-field="link_url">{{ b.link_text }}</a>
   </article>{% endfor %}</div>
+  {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'text' %}
-<section class="sec sec--{{ s.style }}"><div class="wrap split{% if not s.image_url %} split--one{% endif %}">
-  <div>{{ head(s, 'h1' if loop.first else 'h2') }}<div class="prose">{{ s.body|paragraphs }}</div>{% if s.button_text %}<p>{{ btn(s.button_text, s.button_url, 'btn--primary') }}</p>{% endif %}</div>
-  {% if s.image_url %}<img class="split__img" src="{{ s.image_url|safe_url }}" alt="" loading="lazy">{% endif %}
+<section class="sec sec--{{ s.style }}"><div class="wrap split{% if not s.image_url and not edit_mode %} split--one{% endif %}">
+  <div data-style-for="section-{{ s.id }}-body">{{ head(s, 'h1' if loop.first else 'h2') }}<div class="prose"{{ ea('section', s.id, 'body') }}>{{ s.body|paragraphs }}</div>
+    <p><a class="btn btn--primary" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a></p></div>
+  <div class="ed-img-wrap">{{ img_edit('section', s.id, s.image_width) }}{% if s.image_url %}<img class="split__img" src="{{ s.image_url|safe_url }}" alt="" loading="lazy" style="width:{{ s.image_width or 100 }}%">{% endif %}</div>
 </div></section>
 
 {% elif s.type == 'stats' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <ul class="stats">{% for b in boxes %}<li><strong>{{ b.title }}</strong><span>{{ b.text }}</span></li>{% endfor %}</ul>
+  <ul class="stats ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'text') }}>{{ b.text }}</span></li>{% endfor %}</ul>
+  {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'process' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <ol class="steps">{% for b in boxes %}<li><h3>{{ b.title }}</h3><p>{{ b.text }}</p></li>{% endfor %}</ol>
+  <ol class="steps ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></li>{% endfor %}</ol>
+  {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'portfolio' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid">{% for b in boxes %}<article class="proj">
-    {% if b.image_url %}<img src="{{ b.image_url|safe_url }}" alt="" loading="lazy">{% else %}<div class="proj__ph" style="--h:{{ b.title|hue }}"><span>{{ b.title[:1] }}</span></div>{% endif %}
-    <div class="proj__body">{% if b.tag %}<span class="pill">{{ b.tag }}</span>{% endif %}<h3>{{ b.title }}</h3>{% if b.text %}<p>{{ b.text }}</p>{% endif %}
-    {% if b.link_text %}<a class="card__link" href="{{ b.link_url|safe_url }}">{{ b.link_text }}</a>{% endif %}</div>
+  <div class="grid ed-boxlist">{% for b in boxes %}<article class="proj{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}">
+    {{ box_toolbar(b) }}
+    <div class="ed-img-wrap">{{ img_edit('box', b.id, b.image_width) }}{% if b.image_url %}<img src="{{ b.image_url|safe_url }}" alt="" loading="lazy" style="width:{{ b.image_width or 100 }}%">{% else %}<div class="proj__ph" style="--h:{{ b.title|hue }}"><span>{{ b.title[:1] }}</span></div>{% endif %}</div>
+    <div class="proj__body" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}"><span class="pill"{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span><h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p>
+    <a class="card__link" href="{{ b.link_url|safe_url }}"{{ ea('box', b.id, 'link_text') }} data-link-field="link_url">{{ b.link_text }}</a></div>
   </article>{% endfor %}</div>
-  {% if s.button_text %}<p class="more">{{ btn(s.button_text, s.button_url, 'btn--primary') }}</p>{% endif %}
+  {{ add_box(s) }}
+  <p class="more"><a class="btn btn--primary" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a></p>
 </div></section>
 
 {% elif s.type == 'testimonials' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid">{% for b in boxes %}<figure class="quote"><blockquote>{{ b.text }}</blockquote><figcaption><strong>{{ b.title }}</strong>{% if b.tag %}<span>{{ b.tag }}</span>{% endif %}</figcaption></figure>{% endfor %}</div>
+  <div class="grid ed-boxlist">{% for b in boxes %}<figure class="quote{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<blockquote{{ ea('box', b.id, 'text') }}>{{ b.text }}</blockquote><figcaption><strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span></figcaption></figure>{% endfor %}</div>
+  {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'faq' %}
-<section class="sec sec--{{ s.style }}"><div class="wrap wrap--narrow">{{ head(s, 'h1' if loop.first else 'h2') }}
-  {% for b in boxes %}<details class="faq"><summary>{{ b.title }}</summary><p>{{ b.text }}</p></details>{% endfor %}
+<section class="sec sec--{{ s.style }}"><div class="wrap wrap--narrow ed-boxlist">{{ head(s, 'h1' if loop.first else 'h2') }}
+  {% for b in boxes %}<details class="faq{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" open style="{{ b|stylevars }}">{{ box_toolbar(b) }}<summary{{ ea('box', b.id, 'title') }}>{{ b.title }}</summary><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></details>{% endfor %}
+  {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'cta' %}
-<section class="cta"><div class="wrap cta__in"><div><h2>{{ s.heading }}</h2>{% if s.subheading %}<p>{{ s.subheading }}</p>{% endif %}</div>{{ btn(s.button_text, s.button_url, 'btn--dark') }}</div></section>
+<section class="cta"><div class="wrap cta__in"><div data-style-for="section-{{ s.id }}" style="{{ s|stylevars }}"><h2{{ ea('section', s.id, 'heading') }}>{{ s.heading }}</h2><p{{ ea('section', s.id, 'subheading') }}>{{ s.subheading }}</p></div>
+  <a class="btn btn--dark" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a></div></section>
 
 {% elif s.type == 'contact' %}
 <section class="sec sec--{{ s.style }}" id="contact"><div class="wrap contact">
-  <div>{{ head(s, 'h1' if loop.first else 'h2') }}{% if s.body %}<div class="prose">{{ s.body|paragraphs }}</div>{% endif %}
+  <div>{{ head(s, 'h1' if loop.first else 'h2') }}<div class="prose"{{ ea('section', s.id, 'body') }}>{{ s.body|paragraphs }}</div>
     <ul class="info">
       {% if site.email %}<li><span>Email</span><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>{% endif %}
       {% if site.phone %}<li><span>Phone</span>{{ site.phone }}</li>{% endif %}
@@ -92,5 +128,19 @@
   </form>
 </div></section>
 {% endif %}
+</div>
 {% endfor %}
+</div>
+
+{% if edit_mode %}
+<section class="sec sec--light ed-add-section-row">
+  <div class="wrap" style="text-align:center">
+    <button type="button" class="btn btn--primary" id="ed-add-section-btn">+ Add section</button>
+  </div>
+</section>
+<script>
+  window.EDITOR_PAGE_ID = {{ page.id }};
+  window.EDITOR_SECTION_TYPES = [{% for k, v in SECTION_TYPES.items() %}["{{ k }}", {{ v.label|tojson }}]{{ "," if not loop.last }}{% endfor %}];
+</script>
+{% endif %}
 {% endblock %}
