@@ -29,6 +29,7 @@
 {% if s.type == 'hero' %}
 <section class="hero"><div class="wrap hero__in">
   <div class="hero__copy" data-style-for="section-{{ s.id }}" style="{{ s|stylevars }}">
+    {% if site.tagline %}<span class="eyebrow">{{ site.tagline }}</span>{% endif %}
     <h1{{ ea('section', s.id, 'heading') }}>{{ s.heading }}</h1>
     <p class="lead"{{ ea('section', s.id, 'subheading') }}>{{ s.subheading }}</p>
     <div class="btns">
@@ -92,7 +93,7 @@
 
 {% elif s.type == 'testimonials' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid ed-boxlist">{% for b in boxes %}<figure class="quote{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<blockquote{{ ea('box', b.id, 'text') }}>{{ b.text }}</blockquote><figcaption><strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span></figcaption></figure>{% endfor %}</div>
+  <div class="grid ed-boxlist">{% for b in boxes %}<figure class="quote{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<blockquote{{ ea('box', b.id, 'text') }}>{{ b.text }}</blockquote><figcaption><span class="quote__avatar" style="--h:{{ b.title|hue }}" aria-hidden="true">{{ b.title[:1] }}</span><span class="quote__who"><strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span></span></figcaption></figure>{% endfor %}</div>
   {{ add_box(s) }}
 </div></section>
 
