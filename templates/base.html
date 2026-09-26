@@ -9,9 +9,29 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+{% if is_admin %}<link rel="stylesheet" href="{{ url_for('static', filename='css/editor.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
 <style>:root{--brand:{{ site.brand_color }};--accent:{{ site.accent_color }}}</style>
 </head>
-<body>
+<body class="{{ 'has-adminbar' if is_admin else '' }} {{ 'edit-mode' if edit_mode else '' }}">
+{% if is_admin %}
+<div id="admin-bar">
+  <div class="ab-left"><strong>{{ site.site_name }}</strong><span class="ab-tag">admin</span></div>
+  <div class="ab-right">
+    <form method="post" action="/admin/edit-mode/{{ 'off' if edit_mode else 'on' }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="ab-btn{{ ' ab-btn--on' if edit_mode else '' }}">{{ 'Exit edit mode' if edit_mode else 'Edit this page' }}</button>
+    </form>
+    <button type="button" class="ab-btn" id="ab-new-page">+ New page</button>
+    <button type="button" class="ab-btn" id="ab-settings">Site settings</button>
+    <a class="ab-btn" href="/admin/messages">Messages{% if unread %} ({{ unread }}){% endif %}</a>
+    <a class="ab-btn" href="/admin">Dashboard</a>
+    <form method="post" action="/admin/logout" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="ab-btn">Log out</button></form>
+  </div>
+</div>
+<div id="ed-modal-root"></div>
+{% endif %}
 <header class="top">
   <div class="wrap top__in">
     <a class="logo" href="/">{% if site.logo_url %}<img src="{{ site.logo_url|safe_url }}" alt="">{% else %}<span class="logo__mark"></span>{% endif %}<span>{{ site.site_name }}</span></a>
@@ -22,7 +42,6 @@
     </nav>
   </div>
 </header>
-{% if is_admin and page is defined and page %}<a class="editbar" href="/admin/pages/{{ page.id }}">Edit this page</a>{% endif %}
 <main>{% block content %}{% endblock %}</main>
 <footer class="foot">
   <div class="wrap foot__in">
@@ -37,5 +56,6 @@
   <div class="wrap foot__legal">{{ site.footer_text.replace('{year}', year|string) }}</div>
 </footer>
 <script src="{{ url_for('static', filename='js/site.js') }}"></script>
+{% if is_admin %}<script src="{{ url_for('static', filename='js/editor.js') }}" defer></script>{% endif %}
 </body>
 </html>
