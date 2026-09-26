@@ -342,3 +342,13 @@ body::before{
   *{transition:none!important;scroll-behavior:auto!important;animation:none!important}
   .reveal{opacity:1!important;transform:none!important}
 }
+/* Photo background for "cards" section boxes (added) */
+.card--photo{padding:0;color:#fff}
+.card--photo .card__bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;background-color:var(--tint);transition:transform .4s var(--ease)}
+.card--photo:hover .card__bg{transform:scale(1.06)}
+.card--photo::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg, rgba(5,6,13,.15) 0%, rgba(5,6,13,.55) 55%, rgba(5,6,13,.92) 100%)}
+.card--photo .card__body{position:relative;z-index:2;padding:2rem}
+.card--photo .card__icon{background:rgba(255,255,255,.16);backdrop-filter:blur(6px);box-shadow:none}
+.card--photo h3{color:#fff}
+.card--photo p{color:rgba(255,255,255,.82)}
+.card--photo .card__link{color:#fff}
