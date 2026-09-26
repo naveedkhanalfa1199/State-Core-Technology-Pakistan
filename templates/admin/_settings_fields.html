@@ -1,0 +1,20 @@
+{% from "admin/_forms.html" import field with context %}
+<h2>Identity</h2>
+{{ field('site_name', 'Site name', values.site_name) }}
+{{ field('tagline', 'Tagline (footer)', values.tagline) }}
+{{ field('logo_url', 'Logo link', values.logo_url, hint='Optional. Paste an image link. Leave empty to use the built-in mark.') }}
+{{ field('meta_description', 'Default search description', values.meta_description) }}
+<h2>Colors</h2>
+<div class="two">
+  {{ field('brand_color', 'Main color', values.brand_color, type='color') }}
+  {{ field('accent_color', 'Accent color', values.accent_color, type='color') }}
+</div>
+<h2>Header button</h2>
+<div class="two">{{ field('header_cta_text', 'Button text', values.header_cta_text, hint='Leave empty to hide the button.') }}{{ field('header_cta_url', 'Button link', values.header_cta_url) }}</div>
+<h2>Contact details</h2>
+<div class="two">{{ field('email', 'Email', values.email) }}{{ field('phone', 'Phone', values.phone) }}</div>
+{{ field('address', 'Location', values.address) }}
+<h2>Social links</h2>
+<div class="two">{{ field('github', 'GitHub', values.github) }}{{ field('linkedin', 'LinkedIn', values.linkedin) }}{{ field('instagram', 'Instagram', values.instagram) }}{{ field('x_twitter', 'X', values.x_twitter) }}</div>
+<h2>Footer</h2>
+{{ field('footer_text', 'Footer text', values.footer_text, hint='{year} is replaced by the current year.') }}
