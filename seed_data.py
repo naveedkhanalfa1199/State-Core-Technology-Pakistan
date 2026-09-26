@@ -24,7 +24,8 @@ def seed(db, Page, Section, Box, Setting):
     # ---- Home
     s = sec(home, "hero", heading="Websites that load fast, read clearly and are easy to run.",
             subheading="We design, build and host websites and web apps for small businesses and startups. You get a site you can edit yourself, without calling a developer for every change.",
-            button_text="See our work", button_url="/portfolio", button2_text="Talk to us", button2_url="/contact")
+            button_text="See our work", button_url="/portfolio", button2_text="Talk to us", button2_url="/contact",
+            image_url="https://picsum.photos/seed/statecore-hero/1200/860")
     for t in ["Python", "Flask", "PostgreSQL", "Supabase", "Render", "HTML + CSS"]:
         box(s, title=t)
     s = sec(home, "stats", "dark")
@@ -41,12 +42,12 @@ def seed(db, Page, Section, Box, Setting):
     ]:
         box(s, icon=ic, title=t, text=x, link_text="Details", link_url="/services")
     s = sec(home, "portfolio", "tint", heading="Recent work", subheading="A few projects we are proud of.", button_text="View all projects", button_url="/portfolio")
-    for t, tag, x in [
-        ("Harbor Coffee Roasters", "Online store", "A subscription store that doubled repeat orders in three months."),
-        ("Northline Physio", "Booking website", "Online appointments and a clear services page for a local clinic."),
-        ("Atlas Freight Portal", "Web app", "A customer portal for tracking shipments and downloading invoices."),
+    for t, tag, x, seed in [
+        ("Harbor Coffee Roasters", "Online store", "A subscription store that doubled repeat orders in three months.", "statecore-proj-1"),
+        ("Northline Physio", "Booking website", "Online appointments and a clear services page for a local clinic.", "statecore-proj-2"),
+        ("Atlas Freight Portal", "Web app", "A customer portal for tracking shipments and downloading invoices.", "statecore-proj-3"),
     ]:
-        box(s, title=t, tag=tag, text=x)
+        box(s, title=t, tag=tag, text=x, image_url=f"https://picsum.photos/seed/{seed}/900/560")
     s = sec(home, "process", heading="How a project runs", subheading="Four steps, with a review after each one.")
     for t, x in [("Discover", "We learn about your business, your customers and what the site must do."),
                  ("Design", "You see real screens, not descriptions, and give feedback."),
@@ -65,7 +66,8 @@ def seed(db, Page, Section, Box, Setting):
     # ---- About
     sec(about, "text", "light", heading="A small studio that stays close to your project",
         subheading="Built by developers who also answer your emails.",
-        body="FuTuRe FLoW started as a side project and grew into a studio that builds websites and web apps for people who would rather run their business than manage a website.\n\nEvery project has one person you can talk to from the first call to launch day and beyond. No hand-offs, no ticket queues.")
+        body="FuTuRe FLoW started as a side project and grew into a studio that builds websites and web apps for people who would rather run their business than manage a website.\n\nEvery project has one person you can talk to from the first call to launch day and beyond. No hand-offs, no ticket queues.",
+        image_url="https://picsum.photos/seed/statecore-about/1000/1250")
     s = sec(about, "cards", "tint", heading="How we work")
     for ic, t, x in [("speed", "Fast by default", "Small pages, sensible images and no unused code. Speed is part of the design."),
                      ("shield", "Secure by default", "Encrypted logins, backups and regular updates are included, not add-ons."),
@@ -75,7 +77,8 @@ def seed(db, Page, Section, Box, Setting):
 
     # ---- Services
     sec(services, "text", "light", heading="Services", subheading="Pick one service or combine them.",
-        body="Every project starts with a short call and a written quote. Prices below are starting points for a typical small-business project.")
+        body="Every project starts with a short call and a written quote. Prices below are starting points for a typical small-business project.",
+        image_url="https://picsum.photos/seed/statecore-services/1000/1250")
     s = sec(services, "cards", "tint")
     for ic, t, x, tag in [
         ("design", "Website design", "Custom layouts, brand-matched colors and typography, mobile-first.", "From $600"),
@@ -96,15 +99,15 @@ def seed(db, Page, Section, Box, Setting):
 
     # ---- Portfolio
     s = sec(work, "portfolio", "light", heading="Selected projects", subheading="A mix of stores, service websites and web apps.")
-    for t, tag, x in [
-        ("Harbor Coffee Roasters", "Online store", "Subscription store with a simple admin for the roastery team."),
-        ("Northline Physio", "Booking website", "Clear service pages and online appointment requests."),
-        ("Atlas Freight Portal", "Web app", "Shipment tracking and invoice downloads for customers."),
-        ("Green Table Catering", "Website", "Menu pages, event enquiries and a photo gallery."),
-        ("Brightpath Tutors", "Web app", "Student sign-ups, class schedules and a parent dashboard."),
-        ("Kite & Co Studio", "Portfolio", "A fast portfolio for a photography studio."),
+    for t, tag, x, seed in [
+        ("Harbor Coffee Roasters", "Online store", "Subscription store with a simple admin for the roastery team.", "statecore-proj-1"),
+        ("Northline Physio", "Booking website", "Clear service pages and online appointment requests.", "statecore-proj-2"),
+        ("Atlas Freight Portal", "Web app", "Shipment tracking and invoice downloads for customers.", "statecore-proj-3"),
+        ("Green Table Catering", "Website", "Menu pages, event enquiries and a photo gallery.", "statecore-proj-4"),
+        ("Brightpath Tutors", "Web app", "Student sign-ups, class schedules and a parent dashboard.", "statecore-proj-5"),
+        ("Kite & Co Studio", "Portfolio", "A fast portfolio for a photography studio.", "statecore-proj-6"),
     ]:
-        box(s, title=t, tag=tag, text=x)
+        box(s, title=t, tag=tag, text=x, image_url=f"https://picsum.photos/seed/{seed}/900/560")
     sec(work, "cta", "tint", heading="Want to be on this page?", button_text="Start a project", button_url="/contact")
 
     # ---- Contact
