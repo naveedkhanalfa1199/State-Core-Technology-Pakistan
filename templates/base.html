@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% if page is defined and page %}{{ page.title }} | {% endif %}{{ site.site_name }}</title>
-<meta name="description" content="{% if page is defined and page and page.meta_description %}{{ page.meta_description }}{% else %}{{ site.meta_description }}{% endif %}">
+<meta name="description" content="{% set meta_desc = page.meta_description if (page is defined and page and page.meta_description) else site.meta_description %}{{ meta_desc }}">
+<meta name="theme-color" content="{{ site.brand_color }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{% if page is defined and page %}{{ page.title }} | {% endif %}{{ site.site_name }}">
+<meta property="og:description" content="{{ meta_desc }}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='{{ site.brand_color|replace('#', '%23') }}'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -41,6 +46,7 @@
       {% if site.header_cta_text %}<a class="btn btn--accent" href="{{ site.header_cta_url|safe_url }}">{{ site.header_cta_text }}</a>{% endif %}
     </nav>
   </div>
+  <div class="nav-backdrop" id="nav-backdrop" aria-hidden="true"></div>
 </header>
 <main>{% block content %}{% endblock %}</main>
 <footer class="foot">
