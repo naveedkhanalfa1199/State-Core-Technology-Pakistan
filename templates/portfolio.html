@@ -1,6 +1,31 @@
 {% extends "base.html" %}
 {% set PLACEHOLDER = "https://picsum.photos/seed/sctportfolio/800/600" %}
 
+{% macro style_controls(b, prefix, label) %}
+{% set fsize = b|attr('font_size' ~ prefix) %}
+{% set ffam = b|attr('font_family' ~ prefix) %}
+{% set fcolor = b|attr('font_color' ~ prefix) %}
+{% set falign = b|attr('text_align' ~ prefix) %}
+{% set fweight = b|attr('font_weight' ~ prefix) %}
+{% set fstyle = b|attr('font_style' ~ prefix) %}
+<div class="eb-style" data-prefix="{{ prefix }}">
+  <span class="eb-style__label">{{ label }}</span>
+  <select class="eb-f-size">
+    {% for k, v in SIZE_CHOICES.items() %}<option value="{{ k }}"{% if fsize==k %} selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <select class="eb-f-font">
+    {% for k, v in FONT_CHOICES.items() %}<option value="{{ k }}"{% if ffam==k %} selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <input type="color" class="eb-f-color" value="{{ fcolor or '#12131a' }}">
+  <select class="eb-f-align">
+    <option value="">Align</option>
+    {% for k, v in ALIGN_CHOICES.items() %}<option value="{{ k }}"{% if falign==k %} selected{% endif %}>{{ v }}</option>{% endfor %}
+  </select>
+  <button type="button" class="eb-f-bold{{ ' on' if fweight=='bold' else '' }}">B</button>
+  <button type="button" class="eb-f-italic{{ ' on' if fstyle=='italic' else '' }}">I</button>
+</div>
+{% endmacro %}
+
 {% macro eb(key, default_text, with_image=True, tag='div', cls='') %}
 {% set b = block('portfolio', key) %}
 {% if with_image %}
@@ -8,14 +33,24 @@
   <div class="eb-imgwrap">
     <img class="eb-img" src="{{ b.image_url or PLACEHOLDER }}" alt="">
     {% if edit_mode %}<label class="eb-upload-btn">Change image<input type="file" accept="image/*" class="eb-file" hidden></label>{% endif %}
-    <div class="eb-caption eb-text"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</div>
+    <div class="eb-caption eb-text eb-text1" style="{{ b|stylevars }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</div>
   </div>
-  {% if edit_mode %}<button type="button" class="eb-save-btn" data-eb-save>Save changes</button>{% endif %}
+  {% if edit_mode %}
+  <div class="eb-toolbar">
+    {{ style_controls(b, '', 'Caption') }}
+  </div>
+  <button type="button" class="eb-save-btn" data-eb-save>Save changes</button>
+  {% endif %}
 </div>
 {% else %}
 <div class="eb" data-page="portfolio" data-key="{{ key }}">
-  <{{ tag }} class="eb-text {{ cls }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</{{ tag }}>
-  {% if edit_mode %}<button type="button" class="eb-save-btn" data-eb-save>Save changes</button>{% endif %}
+  <{{ tag }} class="eb-text eb-text1 {{ cls }}" style="{{ b|stylevars }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</{{ tag }}>
+  {% if edit_mode %}
+  <div class="eb-toolbar">
+    {{ style_controls(b, '', 'Text') }}
+  </div>
+  <button type="button" class="eb-save-btn" data-eb-save>Save changes</button>
+  {% endif %}
 </div>
 {% endif %}
 {% endmacro %}
@@ -77,6 +112,14 @@
 .eb-text[contenteditable]{outline:2px dashed transparent;cursor:text}
 .eb-text[contenteditable]:focus{outline:2px dashed var(--p-accent)}
 .p-intro__h.eb-text,.p-intro__lead.eb-text,.p-cta__h.eb-text{background:transparent;color:inherit}
+.eb-toolbar{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px;background:#f3f3f8;border-radius:8px}
+.eb-style{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.7rem}
+.eb-style__label{font-weight:700;width:66px;flex:0 0 auto;color:#5b5f6b}
+.eb-style select,.eb-style input[type=color]{font-size:.7rem;padding:2px 3px;border-radius:5px;border:1px solid var(--p-line);max-width:88px}
+.eb-f-bold,.eb-f-italic{width:24px;height:24px;line-height:22px;padding:0;border:1px solid var(--p-line);border-radius:5px;background:#fff;cursor:pointer;font-size:.75rem}
+.eb-f-bold{font-weight:800}
+.eb-f-italic{font-style:italic}
+.eb-f-bold.on,.eb-f-italic.on{background:var(--p-accent);color:#12131a;border-color:var(--p-accent)}
 
 .p-cta{padding:70px 0;background:#f6f6fa}
 .p-cta__in{display:flex;justify-content:space-between;align-items:center;gap:30px;flex-wrap:wrap}
@@ -92,6 +135,26 @@
 (function(){
   var meta = document.querySelector('meta[name="csrf-token"]');
   var csrf = meta ? meta.content : '';
+  var SIZE_MAP = {xs:'0.75rem',sm:'0.9rem',md:'',lg:'1.25rem',xl:'1.6rem',xxl:'2.1rem',xxxl:'2.75rem'};
+  var FONT_MAP = {display:"'Space Grotesk',system-ui,sans-serif",body:"'Inter',system-ui,sans-serif",
+    serif:"Georgia,'Times New Roman',serif",mono:"'Courier New',monospace"};
+
+  function liveStyle(styleBox, textEl){
+    if(!textEl) return;
+    var css = [];
+    var size = styleBox.querySelector('.eb-f-size').value;
+    if(SIZE_MAP[size]) css.push('font-size:'+SIZE_MAP[size]);
+    var fam = styleBox.querySelector('.eb-f-font').value;
+    if(FONT_MAP[fam]) css.push('font-family:'+FONT_MAP[fam]);
+    var color = styleBox.querySelector('.eb-f-color').value;
+    if(color) css.push('color:'+color);
+    var align = styleBox.querySelector('.eb-f-align').value;
+    if(align) css.push('text-align:'+align);
+    if(styleBox.querySelector('.eb-f-bold').classList.contains('on')) css.push('font-weight:700');
+    if(styleBox.querySelector('.eb-f-italic').classList.contains('on')) css.push('font-style:italic');
+    textEl.setAttribute('style', css.join(';'));
+  }
+
   document.querySelectorAll('.eb').forEach(function(box){
     var saveBtn = box.querySelector('[data-eb-save]');
     if(!saveBtn) return;
@@ -103,14 +166,40 @@
         }
       });
     }
+
+    box.querySelectorAll('.eb-style').forEach(function(styleBox){
+      var prefix = styleBox.getAttribute('data-prefix');
+      var textEl = box.querySelector(prefix === '2' ? '.eb-text2' : '.eb-text1');
+      styleBox.querySelectorAll('select, input[type=color]').forEach(function(el){
+        el.addEventListener('change', function(){ liveStyle(styleBox, textEl); });
+      });
+      styleBox.querySelectorAll('.eb-f-bold, .eb-f-italic').forEach(function(btn){
+        btn.addEventListener('click', function(){ btn.classList.toggle('on'); liveStyle(styleBox, textEl); });
+      });
+    });
+
     saveBtn.addEventListener('click', function(){
       var page = box.dataset.page, key = box.dataset.key;
-      var textEl = box.querySelector('.eb-text');
-      var text = textEl ? textEl.innerText.trim() : '';
+      var text1El = box.querySelector('.eb-text1');
+      var text2El = box.querySelector('.eb-text2');
+      var payload = {
+        csrf_token: csrf, page: page, key: key,
+        text: text1El ? text1El.innerText.trim() : '',
+        text2: text2El ? text2El.innerText.trim() : '',
+      };
+      box.querySelectorAll('.eb-style').forEach(function(styleBox){
+        var p = styleBox.getAttribute('data-prefix');
+        payload['font_size'+p] = styleBox.querySelector('.eb-f-size').value;
+        payload['font_family'+p] = styleBox.querySelector('.eb-f-font').value;
+        payload['font_color'+p] = styleBox.querySelector('.eb-f-color').value;
+        payload['text_align'+p] = styleBox.querySelector('.eb-f-align').value;
+        payload['font_weight'+p] = styleBox.querySelector('.eb-f-bold').classList.contains('on') ? 'bold' : '';
+        payload['font_style'+p] = styleBox.querySelector('.eb-f-italic').classList.contains('on') ? 'italic' : '';
+      });
       saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
       fetch('/admin/api/block/save', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({csrf_token: csrf, page: page, key: key, text: text})
+        body: JSON.stringify(payload)
       }).then(function(r){ return r.json(); }).then(function(r1){
         if(!r1.ok){ alert(r1.error || 'Could not save text.'); saveBtn.disabled=false; saveBtn.textContent='Save changes'; return; }
         if(fileInput && fileInput.files && fileInput.files[0]){
