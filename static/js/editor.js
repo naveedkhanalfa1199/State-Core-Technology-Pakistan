@@ -75,7 +75,7 @@
     }).then(function (r) { if (!r.ok) toast(r.error || "Could not save.", false); });
   }
 
-  // ---- Icon picker (cards section) -----------------------------------------
+  // ---- Icon picker (cards / portfolio section) -------------------------------
   var ICONS = ["code", "design", "database", "speed", "shield", "chart", "mobile", "search", "cart", "mail", "globe"];
   document.querySelectorAll(".ed-icon-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -96,124 +96,7 @@
     });
   });
 
-  // ---- Image: upload / link / size / overlay / remove -----------------------
-  document.querySelectorAll(".ed-img-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      closePopovers();
-      var kind = btn.getAttribute("data-img-kind"), id = +btn.getAttribute("data-img-id");
-      var img = btn.parentElement.querySelector("img");
-      var pop = document.createElement("div");
-      pop.className = "ed-pop";
-      pop.style.minWidth = "260px";
-      pop.innerHTML = "<button class='close' type='button'>&times;</button><h4>Image</h4>" +
-        "<label>Upload from device<input type='file' accept='.jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif'></label>" +
-        "<p class='ed-upload-msg' style='display:none;font-size:.8rem'></p>" +
-        "<label>Or paste an image link<input type='url' value='" + (img ? img.getAttribute("src") : "") + "' placeholder='https://...'></label>" +
-        "<label>Box width (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-w'></label>" +
-        "<label>Box height (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-h'></label>" +
-        (kind === "box" ? "<label class='ed-check'><input type='checkbox' class='ed-overlay'> Show text as a caption over the image</label>" : "") +
-        "<button type='button' class='ed-reset ed-img-remove' style='width:100%;margin-top:.4rem;padding:.4rem;border:1px solid #eecaca;color:#a11a1a;border-radius:6px;background:#fff;cursor:pointer'>Remove image</button>";
-      positionPopover(pop, btn);
-      var msg = pop.querySelector(".ed-upload-msg");
-
-      pop.querySelector("input[type=file]").addEventListener("change", function (e) {
-        var file = e.target.files[0];
-        if (!file) return;
-        msg.style.display = "block"; msg.style.color = "#171540"; msg.textContent = "Uploading...";
-        var fd = new FormData();
-        fd.append("kind", kind); fd.append("id", id); fd.append("file", file); fd.append("csrf_token", CSRF);
-        fetch("/admin/api/image/upload", { method: "POST", body: fd })
-          .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-          .then(function (r) {
-            if (r.ok) location.reload();
-            else { msg.style.color = "#a11a1a"; msg.textContent = r.error || "Upload failed."; }
-          });
-      });
-
-      pop.querySelector("input[type=url]").addEventListener("change", function (e) {
-        post("/admin/api/image", { kind: kind, id: id, url: e.target.value.trim(), width: "100" })
-          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
-      });
-
-      function saveSize() {
-        post("/admin/api/size", {
-          kind: kind, id: id,
-          width: pop.querySelector(".ed-w").value, height: pop.querySelector(".ed-h").value,
-        }).then(function (r) { if (!r.ok) toast(r.error || "Could not save size.", false); });
-      }
-      pop.querySelector(".ed-w").addEventListener("change", saveSize);
-      pop.querySelector(".ed-h").addEventListener("change", saveSize);
-
-      var overlayBox = pop.querySelector(".ed-overlay");
-      if (overlayBox) overlayBox.addEventListener("change", function () {
-        post("/admin/api/overlay", { kind: kind, id: id, overlay: overlayBox.checked })
-          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
-      });
-
-      pop.querySelector(".ed-img-remove").addEventListener("click", function () {
-        post("/admin/api/image/delete", { kind: kind, id: id })
-          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not remove.", false); });
-      });
-
-      pop.querySelector(".close").addEventListener("click", closePopovers);
-    });
-  });
-
-  // ---- Text style popover ---------------------------------------------------
-  document.querySelectorAll(".ed-style-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      closePopovers();
-      var kind = btn.getAttribute("data-style-kind"), id = btn.getAttribute("data-style-id");
-      var target = document.querySelector('[data-style-for="' + kind + '-' + id + '"]');
-      var pop = document.createElement("div");
-      pop.className = "ed-pop";
-      pop.innerHTML =
-        "<button class='close' type='button'>&times;</button><h4>Text style</h4>" +
-        "<label>Size<select name='font_size'>" +
-        "<option value=''>Normal</option><option value='sm'>Small</option><option value='lg'>Large</option><option value='xl'>Extra large</option>" +
-        "</select></label>" +
-        "<label>Font<select name='font_family'>" +
-        "<option value=''>Default</option><option value='display'>Heading style</option><option value='body'>Body style</option>" +
-        "<option value='serif'>Serif</option><option value='mono'>Monospace</option></select></label>" +
-        "<label>Color<input type='color' name='font_color' value='#171540'></label>" +
-        "<label>Align<div class='row'>" +
-        "<button type='button' data-a='left'>Left</button><button type='button' data-a='center'>Center</button><button type='button' data-a='right'>Right</button>" +
-        "</div></label>" +
-        "<label><button type='button' class='ed-reset' style='width:100%;padding:.4rem;border:1px solid #eecaca;color:#a11a1a;border-radius:6px;background:#fff;cursor:pointer'>Reset to default</button></label>";
-      positionPopover(pop, btn);
-      var align = "";
-      pop.querySelectorAll(".row button[data-a]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          pop.querySelectorAll(".row button[data-a]").forEach(function (x) { x.classList.remove("on"); });
-          b.classList.add("on"); align = b.getAttribute("data-a"); save();
-        });
-      });
-      pop.querySelector("[name=font_size]").addEventListener("change", save);
-      pop.querySelector("[name=font_family]").addEventListener("change", save);
-      pop.querySelector("[name=font_color]").addEventListener("change", save);
-      pop.querySelector(".ed-reset").addEventListener("click", function () {
-        pop.querySelector("[name=font_size]").value = "";
-        pop.querySelector("[name=font_family]").value = "";
-        pop.querySelector("[name=font_color]").value = "#171540";
-        align = ""; pop.querySelectorAll(".row button[data-a]").forEach(function (x) { x.classList.remove("on"); });
-        save(true);
-      });
-      function save(resetColor) {
-        post("/admin/api/style", {
-          kind: kind, id: +id,
-          font_size: pop.querySelector("[name=font_size]").value,
-          font_family: pop.querySelector("[name=font_family]").value,
-          font_color: resetColor ? "" : pop.querySelector("[name=font_color]").value,
-          text_align: align,
-        }).then(function (r) {
-          if (r.ok && target) target.setAttribute("style", r.style || "");
-          else if (!r.ok) toast(r.error || "Could not save.", false);
-        });
-      }
-      pop.querySelector(".close").addEventListener("click", closePopovers);
-    });
-  });
-
+  // ---- Popover helpers --------------------------------------------------------
   function positionPopover(pop, anchor) {
     document.body.appendChild(pop);
     var r = anchor.getBoundingClientRect();
@@ -231,20 +114,167 @@
   }
   function closePopovers() { document.querySelectorAll(".ed-pop").forEach(function (p) { p.remove(); }); }
 
-  // ---- Visibility + delete ----------------------------------------------------
-  document.querySelectorAll(".ed-vis").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var on = btn.getAttribute("data-vis") !== "on";
-      post("/admin/api/visibility", { kind: btn.getAttribute("data-vis-kind"), id: +btn.getAttribute("data-vis-id"), visible: on })
-        .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
-    });
-  });
-  document.querySelectorAll(".ed-del").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var kind = btn.getAttribute("data-del-kind");
-      if (!confirm("Delete this " + kind + "? This can't be undone.")) return;
-      post("/admin/api/" + kind + "/" + btn.getAttribute("data-del-id") + "/delete", {})
-        .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not delete.", false); });
+  // ---- Consolidated "⚙ Settings" popover --------------------------------------
+  // One button per box/section instead of separate Style / Hide / Delete / Change-image
+  // buttons. Size, image (upload/link/remove), overlay, text style, visibility and
+  // delete all live in this single popover.
+  document.querySelectorAll(".ed-toolbar--sec, .ed-toolbar--box").forEach(function (toolbar) {
+    var visBtn = toolbar.querySelector(".ed-vis");
+    var delBtn = toolbar.querySelector(".ed-del");
+    var styleBtn = toolbar.querySelector(".ed-style-btn");
+    if (!visBtn || !delBtn) return;
+
+    var kind = visBtn.getAttribute("data-vis-kind");
+    var id = visBtn.getAttribute("data-vis-id");
+    var styleTarget = document.querySelector('[data-style-for="' + kind + '-' + id + '"]');
+    var imgBtn = document.querySelector('.ed-img-btn[data-img-kind="' + kind + '"][data-img-id="' + id + '"]');
+    var boxEl = kind === "box" ? document.querySelector('[data-box-id="' + id + '"]') : null;
+    var hasImage = !!imgBtn;
+    var hasSize = kind === "box" || hasImage; // a section only gets a size control when it actually shows an image
+
+    // Old scattered buttons are gone; the image button is hidden (its job moves into
+    // this popover) but stays in the DOM so we can still read its current image from it.
+    if (styleBtn) styleBtn.remove();
+    visBtn.remove();
+    delBtn.remove();
+    if (imgBtn) imgBtn.style.display = "none";
+
+    var gearBtn = document.createElement("button");
+    gearBtn.type = "button";
+    gearBtn.title = "Settings";
+    gearBtn.textContent = "\u2699";
+    toolbar.appendChild(gearBtn);
+
+    gearBtn.addEventListener("click", function () {
+      closePopovers();
+      var dimsEl = kind === "box" ? boxEl : (imgBtn ? imgBtn.parentElement.querySelector("img") : null);
+      var curW = dimsEl ? (parseInt(dimsEl.style.width, 10) || "") : "";
+      var curH = dimsEl ? (parseInt(dimsEl.style.height, 10) || "") : "";
+      var curOverlay = boxEl ? !boxEl.classList.contains("card--photo-plain") : false;
+      var curImg = imgBtn ? imgBtn.parentElement.querySelector("img") : null;
+      var curImgUrl = curImg ? curImg.getAttribute("src") : "";
+      var visOn = visBtn.getAttribute("data-vis") === "on";
+
+      var html = "<button class='close' type='button'>&times;</button><h4>Settings</h4>";
+
+      if (hasSize) {
+        html += "<label>Width (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-w' value='" + curW + "'></label>" +
+          "<label>Height (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-h' value='" + curH + "'></label>";
+      }
+      if (hasImage) {
+        html += "<label>Upload from device<input type='file' accept='.jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif'></label>" +
+          "<p class='ed-upload-msg' style='display:none;font-size:.8rem'></p>" +
+          "<label>Or paste an image link<input type='url' value='" + curImgUrl + "' placeholder='https://...'></label>" +
+          (kind === "box" ? "<label class='ed-check'><input type='checkbox' class='ed-overlay'" + (curOverlay ? " checked" : "") + "> Show text as a caption over the image</label>" : "") +
+          "<button type='button' class='ed-img-remove' style='width:100%;margin:.2rem 0 .8rem;padding:.4rem;border:1px solid #eecaca;color:#a11a1a;border-radius:6px;background:#fff;cursor:pointer'>Remove image</button>";
+      }
+      html += "<h4 style='margin-top:.9rem'>Text style</h4>" +
+        "<label>Size<select name='font_size'>" +
+        "<option value=''>Normal</option><option value='sm'>Small</option><option value='lg'>Large</option><option value='xl'>Extra large</option>" +
+        "</select></label>" +
+        "<label>Font<select name='font_family'>" +
+        "<option value=''>Default</option><option value='display'>Heading style</option><option value='body'>Body style</option>" +
+        "<option value='serif'>Serif</option><option value='mono'>Monospace</option></select></label>" +
+        "<label>Color<input type='color' name='font_color' value='#171540'></label>" +
+        "<label>Align<div class='row'>" +
+        "<button type='button' data-a='left'>Left</button><button type='button' data-a='center'>Center</button><button type='button' data-a='right'>Right</button>" +
+        "</div></label>" +
+        "<button type='button' class='ed-style-reset' style='width:100%;margin-bottom:.7rem;padding:.4rem;border:1px solid #eecaca;color:#a11a1a;border-radius:6px;background:#fff;cursor:pointer'>Reset text style</button>" +
+        "<div class='row'>" +
+        "<button type='button' class='ed-vis2'>" + (visOn ? "Hide" : "Show") + "</button>" +
+        "<button type='button' class='ed-del2' style='color:#a11a1a'>Delete</button>" +
+        "</div>";
+
+      var pop = document.createElement("div");
+      pop.className = "ed-pop";
+      pop.style.minWidth = "270px";
+      pop.innerHTML = html;
+      positionPopover(pop, gearBtn);
+
+      // --- size ---
+      if (hasSize) {
+        var saveSize = function () {
+          post("/admin/api/size", { kind: kind, id: +id, width: pop.querySelector(".ed-w").value, height: pop.querySelector(".ed-h").value })
+            .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save size.", false); });
+        };
+        pop.querySelector(".ed-w").addEventListener("change", saveSize);
+        pop.querySelector(".ed-h").addEventListener("change", saveSize);
+      }
+
+      // --- image: upload / link / overlay / remove ---
+      if (hasImage) {
+        var msg = pop.querySelector(".ed-upload-msg");
+        pop.querySelector("input[type=file]").addEventListener("change", function (e) {
+          var file = e.target.files[0];
+          if (!file) return;
+          msg.style.display = "block"; msg.style.color = "#171540"; msg.textContent = "Uploading...";
+          var fd = new FormData();
+          fd.append("kind", kind); fd.append("id", id); fd.append("file", file); fd.append("csrf_token", CSRF);
+          fetch("/admin/api/image/upload", { method: "POST", body: fd })
+            .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+            .then(function (r) {
+              if (r.ok) location.reload();
+              else { msg.style.color = "#a11a1a"; msg.textContent = r.error || "Upload failed."; }
+            });
+        });
+        pop.querySelector("input[type=url]").addEventListener("change", function (e) {
+          post("/admin/api/image", { kind: kind, id: id, url: e.target.value.trim(), width: "100" })
+            .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
+        });
+        var overlayBox = pop.querySelector(".ed-overlay");
+        if (overlayBox) overlayBox.addEventListener("change", function () {
+          post("/admin/api/overlay", { kind: kind, id: id, overlay: overlayBox.checked })
+            .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
+        });
+        pop.querySelector(".ed-img-remove").addEventListener("click", function () {
+          post("/admin/api/image/delete", { kind: kind, id: id })
+            .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not remove.", false); });
+        });
+      }
+
+      // --- text style ---
+      var align = "";
+      pop.querySelectorAll(".row button[data-a]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          pop.querySelectorAll(".row button[data-a]").forEach(function (x) { x.classList.remove("on"); });
+          b.classList.add("on"); align = b.getAttribute("data-a"); saveStyle();
+        });
+      });
+      pop.querySelector("[name=font_size]").addEventListener("change", saveStyle);
+      pop.querySelector("[name=font_family]").addEventListener("change", saveStyle);
+      pop.querySelector("[name=font_color]").addEventListener("change", saveStyle);
+      pop.querySelector(".ed-style-reset").addEventListener("click", function () {
+        pop.querySelector("[name=font_size]").value = "";
+        pop.querySelector("[name=font_family]").value = "";
+        pop.querySelector("[name=font_color]").value = "#171540";
+        align = ""; pop.querySelectorAll(".row button[data-a]").forEach(function (x) { x.classList.remove("on"); });
+        saveStyle(true);
+      });
+      function saveStyle(resetColor) {
+        post("/admin/api/style", {
+          kind: kind, id: +id,
+          font_size: pop.querySelector("[name=font_size]").value,
+          font_family: pop.querySelector("[name=font_family]").value,
+          font_color: resetColor ? "" : pop.querySelector("[name=font_color]").value,
+          text_align: align,
+        }).then(function (r) {
+          if (r.ok && styleTarget) styleTarget.setAttribute("style", r.style || "");
+          else if (!r.ok) toast(r.error || "Could not save.", false);
+        });
+      }
+
+      // --- visibility / delete ---
+      pop.querySelector(".ed-vis2").addEventListener("click", function () {
+        post("/admin/api/visibility", { kind: kind, id: +id, visible: !visOn })
+          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
+      });
+      pop.querySelector(".ed-del2").addEventListener("click", function () {
+        if (!confirm("Delete this " + kind + "? This can't be undone.")) return;
+        post("/admin/api/" + kind + "/" + id + "/delete", {})
+          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not delete.", false); });
+      });
+
+      pop.querySelector(".close").addEventListener("click", closePopovers);
     });
   });
 
