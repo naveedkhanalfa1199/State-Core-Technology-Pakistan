@@ -10,7 +10,7 @@
   <td>{{ 'Published' if p.is_published else 'Hidden' }}{% if not p.show_in_nav %}, not in menu{% endif %}</td>
   <td class="acts"><a class="btn-s" href="/admin/pages/{{ p.id }}">Edit</a>
     {{ post('/admin/pages/%d/move/up' % p.id, 'Up') }}{{ post('/admin/pages/%d/move/down' % p.id, 'Down') }}
-    {{ post('/admin/pages/%d/delete' % p.id, 'Delete', 'danger', 'Delete this page and all its sections?') }}</td>
+    {{ post('/admin/pages/%d/delete' % p.id, 'Delete', 'danger', 'Delete this page and its saved text/image edits?') }}</td>
 </tr>{% else %}<tr><td colspan="4">No pages yet.</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}
