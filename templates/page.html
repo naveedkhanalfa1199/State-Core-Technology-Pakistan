@@ -15,8 +15,12 @@
   <button type="button" class="ed-vis" data-vis-kind="box" data-vis-id="{{ b.id }}" data-vis="{{ 'on' if b.is_visible else 'off' }}" title="Hide/show">{{ 'Hide' if b.is_visible else 'Show' }}</button>
   <button type="button" class="ed-del" data-del-kind="box" data-del-id="{{ b.id }}" title="Delete">Delete</button>
 </div>{% endif %}{% endmacro %}
-{% macro img_edit(kind, id, width) %}{% if edit_mode %}<button type="button" class="ed-img-btn" data-img-kind="{{ kind }}" data-img-id="{{ id }}" data-img-width="{{ width or 100 }}">Change image</button>{% endif %}{% endmacro %}
+{% macro img_edit(kind, id) %}{% if edit_mode %}<button type="button" class="ed-img-btn" data-img-kind="{{ kind }}" data-img-id="{{ id }}">Change image</button>{% endif %}{% endmacro %}
 {% macro add_box(sec) %}{% if edit_mode and SECTION_TYPES[sec.type].box_fields %}<button type="button" class="ed-add-box" data-add-section="{{ sec.id }}">+ Add {{ SECTION_TYPES[sec.type].box_name }}</button>{% endif %}{% endmacro %}
+{#- Section.width / Section.height: the size (px) of THIS section's own image (hero/text). Free, admin-set, no preset. -#}
+{% macro img_style(o) %}{% if o.width or o.height %} style="{% if o.width %}width:{{ o.width }}px;{% endif %}{% if o.height %}height:{{ o.height }}px;{% endif %}object-fit:cover"{% endif %}{% endmacro %}
+{#- Box.width / Box.height: the size (px) of the box's own container (card, stat, step, project, quote, faq item). Combined with the existing text-style vars so both keep working together. -#}
+{% macro box_style(o) %}{{ o|stylevars }}{% if o.width %}; width:{{ o.width }}px; max-width:100%{% endif %}{% if o.height %}; height:{{ o.height }}px{% endif %}{% endmacro %}
 
 {% block content %}
 {% if not sections %}<section class="sec sec--light"><div class="wrap sec__head"><h1>{{ page.title }}</h1><p>This page has no content yet.</p>{% if edit_mode %}<p><em>Use "+ Add section" at the bottom of this page to start building it.</em></p>{% endif %}</div></section>{% endif %}
@@ -40,8 +44,8 @@
   <div class="browser" aria-hidden="true">
     <div class="browser__bar"><i></i><i></i><i></i><span>{{ site.site_name|lower|replace(' ', '') }}.com</span></div>
     <div class="browser__body ed-img-wrap">
-      {{ img_edit('section', s.id, s.image_width) }}
-      {% if s.image_url %}<img src="{{ s.image_url|safe_url }}" alt="" style="width:{{ s.image_width or 100 }}%">{% else %}
+      {{ img_edit('section', s.id) }}
+      {% if s.image_url %}<img src="{{ s.image_url|safe_url }}" alt=""{{ img_style(s) }}>{% else %}
       <div class="sk sk--h"></div><div class="sk"></div><div class="sk sk--s"></div>
       <div class="chips">{% for b in boxes %}<span{{ ea('box', b.id, 'title') }}>{{ b.title }}</span>{% endfor %}
       {% if edit_mode %}<button type="button" class="ed-add-box ed-add-box--chip" data-add-section="{{ s.id }}">+ Add</button>{% endif %}</div>{% endif %}
@@ -51,7 +55,7 @@
 
 {% elif s.type == 'cards' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">
+  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ box_style(b) }}">
     {{ box_toolbar(b) }}
     <div class="card__icon">{% if edit_mode %}<button type="button" class="ed-icon-btn" data-icon-id="{{ b.id }}" data-icon="{{ b.icon }}" title="Change icon">{{ b.icon|icon }}</button>{% else %}{{ b.icon|icon }}{% endif %}</div>
     <h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p>
@@ -64,28 +68,28 @@
 <section class="sec sec--{{ s.style }}"><div class="wrap split{% if not s.image_url and not edit_mode %} split--one{% endif %}">
   <div data-style-for="section-{{ s.id }}-body">{{ head(s, 'h1' if loop.first else 'h2') }}<div class="prose"{{ ea('section', s.id, 'body') }}>{{ s.body|paragraphs }}</div>
     <p><a class="btn btn--primary" href="{{ s.button_url|safe_url }}"{{ ea('section', s.id, 'button_text') }} data-link-field="button_url">{{ s.button_text }}</a></p></div>
-  <div class="ed-img-wrap">{{ img_edit('section', s.id, s.image_width) }}{% if s.image_url %}<img class="split__img" src="{{ s.image_url|safe_url }}" alt="" loading="lazy" style="width:{{ s.image_width or 100 }}%">{% endif %}</div>
+  <div class="ed-img-wrap">{{ img_edit('section', s.id) }}{% if s.image_url %}<img class="split__img" src="{{ s.image_url|safe_url }}" alt="" loading="lazy"{{ img_style(s) }}>{% endif %}</div>
 </div></section>
 
 {% elif s.type == 'stats' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <ul class="stats ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'text') }}>{{ b.text }}</span></li>{% endfor %}</ul>
+  <ul class="stats ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ box_style(b) }}">{{ box_toolbar(b) }}<strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'text') }}>{{ b.text }}</span></li>{% endfor %}</ul>
   {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'process' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <ol class="steps ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></li>{% endfor %}</ol>
+  <ol class="steps ed-boxlist">{% for b in boxes %}<li class="{{ '' if b.is_visible else 'ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ box_style(b) }}">{{ box_toolbar(b) }}<h3{{ ea('box', b.id, 'title') }}>{{ b.title }}</h3><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></li>{% endfor %}</ol>
   {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'portfolio' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card card--photo{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">
+  <div class="grid ed-boxlist">{% for b in boxes %}<article class="card card--photo{{ '' if b.overlay else ' card--photo-plain' }}{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ box_style(b) }}">
     {{ box_toolbar(b) }}
     <div class="card__bg ed-img-wrap"{% if b.image_url %} style="background-image:url('{{ b.image_url|safe_url }}')"{% endif %}>
       <img src="{{ b.image_url|safe_url }}" alt="" style="display:none">
-      {{ img_edit('box', b.id, b.image_width) }}
+      {{ img_edit('box', b.id) }}
     </div>
     <div class="card__body">
       <div class="card__icon">{% if edit_mode %}<button type="button" class="ed-icon-btn" data-icon-id="{{ b.id }}" data-icon="{{ b.icon }}" title="Change icon">{{ b.icon|icon }}</button>{% else %}{{ b.icon|icon }}{% endif %}</div>
@@ -99,13 +103,13 @@
 
 {% elif s.type == 'testimonials' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap">{{ head(s, 'h1' if loop.first else 'h2') }}
-  <div class="grid ed-boxlist">{% for b in boxes %}<figure class="quote{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ b|stylevars }}">{{ box_toolbar(b) }}<blockquote{{ ea('box', b.id, 'text') }}>{{ b.text }}</blockquote><figcaption><span class="quote__avatar" style="--h:{{ b.title|hue }}" aria-hidden="true">{{ b.title[:1] }}</span><span class="quote__who"><strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span></span></figcaption></figure>{% endfor %}</div>
+  <div class="grid ed-boxlist">{% for b in boxes %}<figure class="quote{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" style="{{ box_style(b) }}">{{ box_toolbar(b) }}<blockquote{{ ea('box', b.id, 'text') }}>{{ b.text }}</blockquote><figcaption><span class="quote__avatar" style="--h:{{ b.title|hue }}" aria-hidden="true">{{ b.title[:1] }}</span><span class="quote__who"><strong{{ ea('box', b.id, 'title') }}>{{ b.title }}</strong><span{{ ea('box', b.id, 'tag') }}>{{ b.tag }}</span></span></figcaption></figure>{% endfor %}</div>
   {{ add_box(s) }}
 </div></section>
 
 {% elif s.type == 'faq' %}
 <section class="sec sec--{{ s.style }}"><div class="wrap wrap--narrow ed-boxlist">{{ head(s, 'h1' if loop.first else 'h2') }}
-  {% for b in boxes %}<details class="faq{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" open style="{{ b|stylevars }}">{{ box_toolbar(b) }}<summary{{ ea('box', b.id, 'title') }}>{{ b.title }}</summary><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></details>{% endfor %}
+  {% for b in boxes %}<details class="faq{{ '' if b.is_visible else ' ed-hidden' }}" data-box-id="{{ b.id }}" data-style-for="box-{{ b.id }}" open style="{{ box_style(b) }}">{{ box_toolbar(b) }}<summary{{ ea('box', b.id, 'title') }}>{{ b.title }}</summary><p{{ ea('box', b.id, 'text') }}>{{ b.text }}</p></details>{% endfor %}
   {{ add_box(s) }}
 </div></section>
 
