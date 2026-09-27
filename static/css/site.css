@@ -352,3 +352,19 @@ body::before{
 .card--photo h3{color:#fff}
 .card--photo p{color:rgba(255,255,255,.82)}
 .card--photo .card__link{color:#fff}
+
+/* Portfolio box with overlay switched off: image sits on top (plain, not covered by a
+   dark caption gradient), title/text render normally below it - like a standard photo card. */
+.card--photo-plain{color:var(--ink)}
+.card--photo-plain .card__bg{position:static;width:100%;aspect-ratio:16/10;border-radius:var(--radius) var(--radius) 0 0;box-shadow:none}
+.card--photo-plain:hover .card__bg{transform:none}
+.card--photo-plain::before{display:none}
+.card--photo-plain .card__body{position:static;padding:1.5rem 2rem 2rem}
+.card--photo-plain .card__icon{background:var(--tint);backdrop-filter:none;box-shadow:none}
+.card--photo-plain h3{color:var(--ink)}
+.card--photo-plain p{color:var(--muted)}
+.card--photo-plain .card__link{color:var(--brand)}
+
+/* When a box/section is given a custom height (px) that's shorter than its content,
+   let it scroll inside itself instead of silently clipping the text. */
+.ed-boxlist [style*="height"]{overflow:auto}
