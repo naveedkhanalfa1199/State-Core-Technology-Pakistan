@@ -145,7 +145,19 @@ class ContentBlock(db.Model):
     font_color = db.Column(db.String(20), default="")
     font_family = db.Column(db.String(20), default="")
     text_align = db.Column(db.String(10), default="")
+    font_weight = db.Column(db.String(6), default="")
+    font_style = db.Column(db.String(6), default="")
     image_url = db.Column(db.String(300), default="")
+    # Second line of text for a box (e.g. a heading + a separate subheading inside
+    # the same image box), with its own independent style so it can look different
+    # from the first line.
+    text2 = db.Column(db.Text, default="")
+    font_size2 = db.Column(db.String(4), default="")
+    font_color2 = db.Column(db.String(20), default="")
+    font_family2 = db.Column(db.String(20), default="")
+    text_align2 = db.Column(db.String(10), default="")
+    font_weight2 = db.Column(db.String(6), default="")
+    font_style2 = db.Column(db.String(6), default="")
     __table_args__ = (db.UniqueConstraint("page", "key", name="uq_content_block_page_key"),)
 
 
@@ -188,15 +200,25 @@ ICONS = {
 }
 
 # On-page text editor: every editable text on every page gets the same style choices.
-TEXT_SIZES = {"sm": "0.9rem", "md": "", "lg": "1.3rem", "xl": "1.8rem"}
+# Sizes go from a small caption size all the way up to a big display heading size.
+TEXT_SIZES = {
+    "xs": "0.75rem", "sm": "0.9rem", "md": "", "lg": "1.25rem",
+    "xl": "1.6rem", "xxl": "2.1rem", "xxxl": "2.75rem",
+}
 FONT_STACKS = {
     "": "", "display": "'Space Grotesk', system-ui, sans-serif",
     "body": "'Inter', system-ui, sans-serif",
     "serif": "Georgia, 'Times New Roman', serif", "mono": "'Courier New', monospace",
 }
-SIZE_CHOICES = {"sm": "Small", "md": "Normal", "lg": "Large", "xl": "Extra large"}
+SIZE_CHOICES = {
+    "xs": "Extra small", "sm": "Small", "md": "Normal", "lg": "Large",
+    "xl": "Extra large", "xxl": "Huge", "xxxl": "Display",
+}
 FONT_CHOICES = {"": "Default", "display": "Heading style", "body": "Body style", "serif": "Serif", "mono": "Monospace"}
 ALIGN_CHOICES = {"left": "Left", "center": "Center", "right": "Right"}
+# Bold / italic toggles - stored the same way as the other style choices above.
+WEIGHT_CHOICES = {"": "Normal", "bold": "Bold"}
+STYLE_CHOICES = {"": "Normal", "italic": "Italic"}
 
 SETTING_DEFAULTS = {
     "site_name": "State Core Technology", "tagline": "Software house, Pakistan", "logo_url": "",
@@ -301,18 +323,45 @@ def hue(text):
     return sum(ord(c) for c in (text or "x")) % 360
 
 
-def style_attr(obj):
-    """Inline CSS for one ContentBlock's text style choices. Used as {{ blk|stylevars }}."""
+def _style_parts(size, family, color, align, weight, style):
+    """Build one inline `style="..."` string from a set of raw style-field values.
+    Shared by the primary (text) and secondary (text2) style helpers below."""
     parts = []
-    if getattr(obj, "font_size", "") in TEXT_SIZES and TEXT_SIZES.get(obj.font_size):
-        parts.append("font-size:%s" % TEXT_SIZES[obj.font_size])
-    if FONT_STACKS.get(getattr(obj, "font_family", "")):
-        parts.append("font-family:%s" % FONT_STACKS[obj.font_family])
-    if getattr(obj, "font_color", ""):
-        parts.append("color:%s" % obj.font_color)
-    if getattr(obj, "text_align", ""):
-        parts.append("text-align:%s" % obj.text_align)
+    if size in TEXT_SIZES and TEXT_SIZES.get(size):
+        parts.append("font-size:%s" % TEXT_SIZES[size])
+    if FONT_STACKS.get(family):
+        parts.append("font-family:%s" % FONT_STACKS[family])
+    if color:
+        parts.append("color:%s" % color)
+    if align:
+        parts.append("text-align:%s" % align)
+    if weight == "bold":
+        parts.append("font-weight:700")
+    if style == "italic":
+        parts.append("font-style:italic")
     return "; ".join(parts)
+
+
+def style_attr(obj):
+    """Inline CSS for one ContentBlock's primary text style choices (font_size,
+    font_family, font_color, text_align, font_weight, font_style). Used as
+    {{ blk|stylevars }}."""
+    return _style_parts(
+        getattr(obj, "font_size", ""), getattr(obj, "font_family", ""),
+        getattr(obj, "font_color", ""), getattr(obj, "text_align", ""),
+        getattr(obj, "font_weight", ""), getattr(obj, "font_style", ""),
+    )
+
+
+def style_attr2(obj):
+    """Same as style_attr(), but for the box's second text line (text2), which
+    can be styled independently of the first (e.g. a smaller, non-bold subheading
+    under a bigger, bold heading). Used as {{ blk|stylevars2 }}."""
+    return _style_parts(
+        getattr(obj, "font_size2", ""), getattr(obj, "font_family2", ""),
+        getattr(obj, "font_color2", ""), getattr(obj, "text_align2", ""),
+        getattr(obj, "font_weight2", ""), getattr(obj, "font_style2", ""),
+    )
 
 
 @app.template_filter("stylevars")
@@ -320,18 +369,27 @@ def stylevars(obj):
     return style_attr(obj)
 
 
-def get_block(page_slug, key, default_text="", default_image=""):
+@app.template_filter("stylevars2")
+def stylevars2(obj):
+    return style_attr2(obj)
+
+
+def get_block(page_slug, key, default_text="", default_image="", default_text2=""):
     """Read one editable text+image block for a hardcoded page. Every page template
     calls this for each spot the admin should be able to edit, e.g.:
         {% set b = block('home', 'hero_heading') %}
         <h1 style="{{ b|stylevars }}">{{ b.text or 'Default headline' }}</h1>
+    A block can optionally carry a second line of text (b.text2 / default_text2) -
+    e.g. a heading plus its own separate subheading inside the same image box -
+    styled independently via {{ b|stylevars2 }}.
     Reading never writes to the database - only a real Save-changes click
     (/admin/api/block/save or /admin/api/block/image) creates or updates a row, so an
     unsaved block simply falls back to the defaults the template passed in."""
     row = ContentBlock.query.filter_by(page=page_slug, key=key).first()
     if row:
         return row
-    return ContentBlock(page=page_slug, key=key, text=default_text, image_url=default_image)
+    return ContentBlock(page=page_slug, key=key, text=default_text, image_url=default_image,
+                         text2=default_text2)
 
 
 @app.context_processor
@@ -346,6 +404,7 @@ def inject():
     return dict(site=site, nav_pages=nav, unread=unread, csrf_token=csrf_token,
                 year=datetime.utcnow().year, block=get_block,
                 SIZE_CHOICES=SIZE_CHOICES, FONT_CHOICES=FONT_CHOICES, ALIGN_CHOICES=ALIGN_CHOICES,
+                WEIGHT_CHOICES=WEIGHT_CHOICES, STYLE_CHOICES=STYLE_CHOICES,
                 is_admin=admin_on, edit_mode=admin_on and bool(session.get("edit_mode")))
 
 
@@ -702,20 +761,36 @@ def _get_or_create_block(page_slug, key):
 @app.post("/admin/api/block/save")
 @admin_json_required
 def api_block_save():
-    """Save a block's text and text style (size, color, font, alignment) in one go."""
+    """Save a block's text (and, optionally, its second line, text2) plus each
+    line's own text style (size, color, font, alignment, bold, italic) in one go."""
     data = request.get_json(silent=True) or {}
     page_slug, key = (data.get("page") or "").strip().lower(), (data.get("key") or "").strip().lower()
     if not _valid_page_key(page_slug, key):
         return jsonify(ok=False, error="Invalid page or key."), 400
     row = _get_or_create_block(page_slug, key)
+
     row.text = (data.get("text") or "").strip()[:5000]
     row.font_size = data.get("font_size") if data.get("font_size") in TEXT_SIZES else ""
     row.font_family = data.get("font_family") if data.get("font_family") in FONT_STACKS else ""
     row.text_align = data.get("text_align") if data.get("text_align") in ALIGN_CHOICES else ""
+    row.font_weight = data.get("font_weight") if data.get("font_weight") in WEIGHT_CHOICES else ""
+    row.font_style = data.get("font_style") if data.get("font_style") in STYLE_CHOICES else ""
     color = (data.get("font_color") or "").strip()
     row.font_color = color if HEX_RE.match(color) else ""
+
+    # Second line (e.g. a subheading under the main heading) - only present on
+    # boxes whose template passed a default_text2, but harmless to always accept.
+    row.text2 = (data.get("text2") or "").strip()[:5000]
+    row.font_size2 = data.get("font_size2") if data.get("font_size2") in TEXT_SIZES else ""
+    row.font_family2 = data.get("font_family2") if data.get("font_family2") in FONT_STACKS else ""
+    row.text_align2 = data.get("text_align2") if data.get("text_align2") in ALIGN_CHOICES else ""
+    row.font_weight2 = data.get("font_weight2") if data.get("font_weight2") in WEIGHT_CHOICES else ""
+    row.font_style2 = data.get("font_style2") if data.get("font_style2") in STYLE_CHOICES else ""
+    color2 = (data.get("font_color2") or "").strip()
+    row.font_color2 = color2 if HEX_RE.match(color2) else ""
+
     db.session.commit()
-    return jsonify(ok=True, style=style_attr(row))
+    return jsonify(ok=True, style=style_attr(row), style2=style_attr2(row))
 
 
 @app.post("/admin/api/block/image")
@@ -773,9 +848,21 @@ def ensure_admin():
 
 # Columns to add, non-destructively, to a table that already exists in an already
 # deployed database but is missing a column a newer version of the app introduced.
-# Empty for now since content_blocks is a brand-new table (created fresh by
-# db.create_all()) - add entries here later the same way if new columns are needed.
-NEW_COLUMNS = {}
+# These cover the bold/italic toggles, the wider size range, and the new second
+# text line (text2) added for boxes that need a heading + a separate subheading.
+NEW_COLUMNS = {
+    "content_blocks": [
+        ("font_weight", "VARCHAR(6) DEFAULT ''"),
+        ("font_style", "VARCHAR(6) DEFAULT ''"),
+        ("text2", "TEXT DEFAULT ''"),
+        ("font_size2", "VARCHAR(4) DEFAULT ''"),
+        ("font_color2", "VARCHAR(20) DEFAULT ''"),
+        ("font_family2", "VARCHAR(20) DEFAULT ''"),
+        ("text_align2", "VARCHAR(10) DEFAULT ''"),
+        ("font_weight2", "VARCHAR(6) DEFAULT ''"),
+        ("font_style2", "VARCHAR(6) DEFAULT ''"),
+    ],
+}
 
 
 def ensure_columns():
