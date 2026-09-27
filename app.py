@@ -1,5 +1,28 @@
-"""State Core Technology - admin-controlled website (Flask + SQLAlchemy + Postgres/Supabase)."""
-import mimetypes
+"""State Core Technology - admin-controlled website (Flask + SQLAlchemy + Postgres/Supabase).
+
+ARCHITECTURE (rewritten):
+  Every page (home, about, services, portfolio, contact, and any new page added later)
+  has its OWN template file with its OWN complete, hardcoded HTML/CSS/layout -
+  box sizes, positions, number of boxes, everything. Nothing about the LAYOUT of a
+  page comes from the database anymore.
+
+  The ONLY thing the database controls is TEXT and IMAGES, through one generic model:
+  ContentBlock. Every editable spot on every page - a heading, a paragraph, a card's
+  caption, an image inside a box - is one ContentBlock row, looked up by a
+  (page, key) pair that the page's own template chooses (e.g. page="home",
+  key="hero_heading"). The template calls the `block()` helper (added to every
+  template's context below) to read it, and renders its own edit controls (text
+  editing, font size/color/family/alignment, image upload, a per-box "Save changes"
+  button) around it when `edit_mode` is on. Saving is done through the small generic
+  JSON/upload API at the bottom of the admin section: /admin/api/block/save and
+  /admin/api/block/image.
+
+  The footer (and header/nav) stay shared, in templates/base.html, since they are the
+  same on every page.
+
+  Page objects (Page model) still exist, but only to drive routing, the nav menu and
+  publish/hide status - not content or layout.
+"""
 import os
 import re
 import secrets
@@ -12,6 +35,7 @@ from functools import wraps
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_sqlalchemy import SQLAlchemy
+from jinja2 import TemplateNotFound
 from markupsafe import Markup, escape
 from sqlalchemy import inspect, text
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -94,6 +118,9 @@ class AdminUser(db.Model):
 
 
 class Page(db.Model):
+    """A page in the site's navigation. Only routing/menu/publish metadata lives here -
+    the page's actual content and design live entirely in its own template file
+    (e.g. templates/home.html), plus whatever ContentBlock rows that template reads."""
     __tablename__ = "pages"
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(80), unique=True, nullable=False, index=True)
@@ -102,58 +129,24 @@ class Page(db.Model):
     show_in_nav = db.Column(db.Boolean, default=True)
     is_published = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)
-    sections = db.relationship("Section", backref="page", cascade="all, delete-orphan",
-                               order_by="Section.sort_order")
 
 
-class Section(db.Model):
-    __tablename__ = "sections"
+class ContentBlock(db.Model):
+    """One admin-editable spot of text and/or image on one page. Identified by
+    (page, key) - the page's own template picks the key, e.g. key="hero_heading" or
+    key="service_box_1". This is the ONLY thing about a page's content that the
+    database controls; box size/position/how-many-boxes is fixed in the page's HTML."""
+    __tablename__ = "content_blocks"
     id = db.Column(db.Integer, primary_key=True)
-    page_id = db.Column(db.Integer, db.ForeignKey("pages.id"), nullable=False)
-    type = db.Column(db.String(30), nullable=False)
-    style = db.Column(db.String(10), default="light")
-    heading = db.Column(db.String(300), default="")
-    subheading = db.Column(db.String(300), default="")
-    body = db.Column(db.Text, default="")
-    button_text = db.Column(db.String(300), default="")
-    button_url = db.Column(db.String(300), default="")
-    button2_text = db.Column(db.String(300), default="")
-    button2_url = db.Column(db.String(300), default="")
-    image_url = db.Column(db.String(300), default="")
-    image_width = db.Column(db.String(4), default="100")
-    width = db.Column(db.Integer)   # exact px width, admin-chosen (new; replaces the 25/50/75/100% presets)
-    height = db.Column(db.Integer)  # exact px height, admin-chosen
-    font_size = db.Column(db.String(4), default="")
-    font_color = db.Column(db.String(20), default="")
-    font_family = db.Column(db.String(20), default="")
-    text_align = db.Column(db.String(10), default="")
-    is_visible = db.Column(db.Boolean, default=True)
-    sort_order = db.Column(db.Integer, default=0)
-    boxes = db.relationship("Box", backref="section", cascade="all, delete-orphan",
-                            order_by="Box.sort_order")
-
-
-class Box(db.Model):
-    __tablename__ = "boxes"
-    id = db.Column(db.Integer, primary_key=True)
-    section_id = db.Column(db.Integer, db.ForeignKey("sections.id"), nullable=False)
-    icon = db.Column(db.String(300), default="")
-    title = db.Column(db.String(300), default="")
+    page = db.Column(db.String(60), nullable=False, index=True)
+    key = db.Column(db.String(80), nullable=False)
     text = db.Column(db.Text, default="")
-    image_url = db.Column(db.String(300), default="")
-    image_width = db.Column(db.String(4), default="100")
-    width = db.Column(db.Integer)    # exact px width for this box, admin-chosen
-    height = db.Column(db.Integer)   # exact px height for this box, admin-chosen
-    overlay = db.Column(db.Boolean, default=False)  # True: title/text render as a caption over the image
-    tag = db.Column(db.String(300), default="")
-    link_text = db.Column(db.String(300), default="")
-    link_url = db.Column(db.String(300), default="")
     font_size = db.Column(db.String(4), default="")
     font_color = db.Column(db.String(20), default="")
     font_family = db.Column(db.String(20), default="")
     text_align = db.Column(db.String(10), default="")
-    is_visible = db.Column(db.Boolean, default=True)
-    sort_order = db.Column(db.Integer, default=0)
+    image_url = db.Column(db.String(300), default="")
+    __table_args__ = (db.UniqueConstraint("page", "key", name="uq_content_block_page_key"),)
 
 
 class Setting(db.Model):
@@ -174,9 +167,12 @@ class Message(db.Model):
 
 
 # --------------------------------------------------------------------------
-# Configuration of what the admin can build
+# Configuration shared by every hardcoded page template
 # --------------------------------------------------------------------------
 
+# A small library of inline-SVG icons a page template can drop into its own hardcoded
+# markup with {{ 'code'|icon }}. Which icon a box uses is a design choice baked into
+# that page's HTML now, not an admin-editable setting.
 ICONS = {
     "code": '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
     "design": '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.6 7.6"/><circle cx="11" cy="11" r="2"/>',
@@ -191,59 +187,7 @@ ICONS = {
     "globe": '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
 }
 
-FIELD_LABELS = {
-    "heading": "Heading", "subheading": "Sub-heading", "body": "Body text",
-    "button_text": "Button text", "button_url": "Button link",
-    "button2_text": "Second button text", "button2_url": "Second button link",
-    "image_url": "Image link",
-}
-
-SECTION_TYPES = {
-    "hero": {"label": "Hero (top banner)",
-             "fields": ["heading", "subheading", "button_text", "button_url", "button2_text", "button2_url", "image_url"],
-             "box_fields": ["title"], "box_name": "tech chip", "labels": {"title": "Name"},
-             "defaults": {"heading": "Your headline goes here", "subheading": "One or two sentences about what you do.", "style": "light"}},
-    "cards": {"label": "Cards (services, features)",
-              "fields": ["heading", "subheading"],
-              "box_fields": ["icon", "title", "text", "link_text", "link_url"], "box_name": "card", "labels": {},
-              "defaults": {"heading": "What we do", "style": "light"}},
-    "text": {"label": "Text and image",
-             "fields": ["heading", "subheading", "body", "image_url", "button_text", "button_url"],
-             "box_fields": [], "box_name": "", "labels": {},
-             "defaults": {"heading": "About us", "body": "Write your text here.", "style": "tint"}},
-    "stats": {"label": "Numbers strip",
-              "fields": ["heading"], "box_fields": ["title", "text"], "box_name": "number",
-              "labels": {"title": "Number (e.g. 40+)", "text": "Label"},
-              "defaults": {"style": "dark"}},
-    "process": {"label": "Steps (a process in order)",
-                "fields": ["heading", "subheading"], "box_fields": ["title", "text"], "box_name": "step", "labels": {},
-                "defaults": {"heading": "How a project runs", "style": "light"}},
-    "portfolio": {"label": "Portfolio / projects",
-                  "fields": ["heading", "subheading", "button_text", "button_url"],
-                  "box_fields": ["image_url", "title", "text", "tag", "link_text", "link_url"], "box_name": "project",
-                  "labels": {"tag": "Category label"},
-                  "defaults": {"heading": "Recent work", "style": "tint"}},
-    "testimonials": {"label": "Testimonials",
-                     "fields": ["heading"], "box_fields": ["text", "title", "tag"], "box_name": "testimonial",
-                     "labels": {"text": "Quote", "title": "Person's name", "tag": "Role / company"},
-                     "defaults": {"heading": "What clients say", "style": "light"}},
-    "faq": {"label": "FAQ",
-            "fields": ["heading", "subheading"], "box_fields": ["title", "text"], "box_name": "question",
-            "labels": {"title": "Question", "text": "Answer"},
-            "defaults": {"heading": "Common questions", "style": "light"}},
-    "cta": {"label": "Call to action banner",
-            "fields": ["heading", "subheading", "button_text", "button_url"],
-            "box_fields": [], "box_name": "", "labels": {},
-            "defaults": {"heading": "Ready to start?", "button_text": "Get in touch", "button_url": "/contact", "style": "light"}},
-    "contact": {"label": "Contact form",
-                "fields": ["heading", "subheading", "body"], "box_fields": [], "box_name": "", "labels": {"body": "Text next to the form"},
-                "defaults": {"heading": "Tell us about your project", "style": "light"}},
-}
-BOX_LABELS = {"icon": "Icon", "title": "Title", "text": "Text", "image_url": "Image link",
-              "tag": "Label", "link_text": "Link text", "link_url": "Link address"}
-LONG_FIELDS = {"body", "text"}
-
-# On-page editor: text style and image-width choices
+# On-page text editor: every editable text on every page gets the same style choices.
 TEXT_SIZES = {"sm": "0.9rem", "md": "", "lg": "1.3rem", "xl": "1.8rem"}
 FONT_STACKS = {
     "": "", "display": "'Space Grotesk', system-ui, sans-serif",
@@ -253,7 +197,6 @@ FONT_STACKS = {
 SIZE_CHOICES = {"sm": "Small", "md": "Normal", "lg": "Large", "xl": "Extra large"}
 FONT_CHOICES = {"": "Default", "display": "Heading style", "body": "Body style", "serif": "Serif", "mono": "Monospace"}
 ALIGN_CHOICES = {"left": "Left", "center": "Center", "right": "Right"}
-WIDTH_CHOICES = ("25", "50", "75", "100")
 
 SETTING_DEFAULTS = {
     "site_name": "State Core Technology", "tagline": "Software house, Pakistan", "logo_url": "",
@@ -267,6 +210,19 @@ SETTING_DEFAULTS = {
 RESERVED_SLUGS = {"admin", "static", "contact-submit"}
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+# page slugs and content-block keys: lowercase letters/numbers/underscore/hyphen only.
+SAFE_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_\-]{0,79}$")
+
+# Every known page and the template file that renders it. New pages added later just
+# get a new entry here (or, for a slug with no entry, the code below falls back to
+# "<slug>.html" automatically) plus their own template file.
+PAGE_TEMPLATES = {
+    "home": "home.html",
+    "about": "about.html",
+    "services": "services.html",
+    "portfolio": "portfolio.html",
+    "contact": "contact.html",
+}
 
 # --------------------------------------------------------------------------
 # Helpers, filters, security
@@ -346,6 +302,7 @@ def hue(text):
 
 
 def style_attr(obj):
+    """Inline CSS for one ContentBlock's text style choices. Used as {{ blk|stylevars }}."""
     parts = []
     if getattr(obj, "font_size", "") in TEXT_SIZES and TEXT_SIZES.get(obj.font_size):
         parts.append("font-size:%s" % TEXT_SIZES[obj.font_size])
@@ -363,6 +320,20 @@ def stylevars(obj):
     return style_attr(obj)
 
 
+def get_block(page_slug, key, default_text="", default_image=""):
+    """Read one editable text+image block for a hardcoded page. Every page template
+    calls this for each spot the admin should be able to edit, e.g.:
+        {% set b = block('home', 'hero_heading') %}
+        <h1 style="{{ b|stylevars }}">{{ b.text or 'Default headline' }}</h1>
+    Reading never writes to the database - only a real Save-changes click
+    (/admin/api/block/save or /admin/api/block/image) creates or updates a row, so an
+    unsaved block simply falls back to the defaults the template passed in."""
+    row = ContentBlock.query.filter_by(page=page_slug, key=key).first()
+    if row:
+        return row
+    return ContentBlock(page=page_slug, key=key, text=default_text, image_url=default_image)
+
+
 @app.context_processor
 def inject():
     try:
@@ -373,11 +344,9 @@ def inject():
         site, nav, unread = dict(SETTING_DEFAULTS), [], 0
     admin_on = bool(session.get("admin_id"))
     return dict(site=site, nav_pages=nav, unread=unread, csrf_token=csrf_token,
-                year=datetime.utcnow().year, ICON_NAMES=list(ICONS), SECTION_TYPES=SECTION_TYPES,
-                FIELD_LABELS=FIELD_LABELS, BOX_LABELS=BOX_LABELS, LONG_FIELDS=LONG_FIELDS,
-                is_admin=admin_on, edit_mode=admin_on and bool(session.get("edit_mode")),
+                year=datetime.utcnow().year, block=get_block,
                 SIZE_CHOICES=SIZE_CHOICES, FONT_CHOICES=FONT_CHOICES, ALIGN_CHOICES=ALIGN_CHOICES,
-                WIDTH_CHOICES=WIDTH_CHOICES)
+                is_admin=admin_on, edit_mode=admin_on and bool(session.get("edit_mode")))
 
 
 def login_required(fn):
@@ -400,27 +369,6 @@ def admin_json_required(fn):
 
 def clean_slug(text):
     return re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")[:60]
-
-
-def set_fields(obj, names):
-    for n in names:
-        limit = 5000 if n in LONG_FIELDS else 300
-        setattr(obj, n, (request.form.get(n) or "").strip()[:limit])
-
-
-def clean_dim(v):
-    """Clamp a width/height value (px) sent by the admin to something sane. None if not sent/invalid."""
-    try:
-        v = int(v)
-    except (TypeError, ValueError):
-        return None
-    return max(20, min(v, 2000))
-
-
-def apply_size(obj, data):
-    for k in ("width", "height"):
-        if data.get(k) is not None:
-            setattr(obj, k, clean_dim(data.get(k)))
 
 
 def next_order(model, **flt):
@@ -446,9 +394,13 @@ def move(items, obj, direction):
 def render_page(page):
     if not page or (not page.is_published and not session.get("admin_id")):
         abort(404)
-    edit_on = session.get("admin_id") and session.get("edit_mode")
-    sections = list(page.sections) if edit_on else [s for s in page.sections if s.is_visible]
-    return render_template("page.html", page=page, sections=sections)
+    template = PAGE_TEMPLATES.get(page.slug, page.slug + ".html")
+    try:
+        return render_template(template, page=page)
+    except TemplateNotFound:
+        # The page exists in the database (nav/admin) but its own HTML file hasn't
+        # been created yet. Expected while pages are being rebuilt one at a time.
+        abort(404)
 
 
 @app.route("/")
@@ -544,14 +496,14 @@ def admin_password():
     return render_template("admin/password.html")
 
 # --------------------------------------------------------------------------
-# Admin: dashboard, pages, sections, boxes
+# Admin: dashboard and page list/metadata (title, web address, nav, publish status)
 # --------------------------------------------------------------------------
 
 
 @app.route("/admin")
 @login_required
 def admin_dashboard():
-    counts = dict(pages=Page.query.count(), sections=Section.query.count(), boxes=Box.query.count())
+    counts = dict(pages=Page.query.count(), blocks=ContentBlock.query.count())
     return render_template("admin/dashboard.html", counts=counts)
 
 
@@ -585,7 +537,8 @@ def admin_page(pid=None):
             page.show_in_nav = request.form.get("show_in_nav") == "on"
             page.is_published = request.form.get("is_published") == "on"
             db.session.commit()
-            flash("Page saved.", "ok")
+            flash("Page saved. Its design/content will use a matching template file "
+                  "(e.g. templates/%s.html) once that's created." % page.slug, "ok")
             return redirect(url_for("admin_page", pid=page.id))
     return render_template("admin/page_edit.html", page=page)
 
@@ -593,7 +546,11 @@ def admin_page(pid=None):
 @app.post("/admin/pages/<int:pid>/delete")
 @login_required
 def admin_page_delete(pid):
-    db.session.delete(db.get_or_404(Page, pid))
+    page = db.get_or_404(Page, pid)
+    if page.slug == "home":
+        flash("The home page can't be deleted.", "error")
+        return redirect(url_for("admin_pages"))
+    db.session.delete(page)
     db.session.commit()
     flash("Page deleted.", "ok")
     return redirect(url_for("admin_pages"))
@@ -606,300 +563,14 @@ def admin_page_move(pid, direction):
     return redirect(url_for("admin_pages"))
 
 
-@app.post("/admin/pages/<int:pid>/sections/add")
-@login_required
-def admin_section_add(pid):
-    page = db.get_or_404(Page, pid)
-    stype = request.form.get("type")
-    if stype not in SECTION_TYPES:
-        abort(400)
-    d = SECTION_TYPES[stype]["defaults"]
-    sec = Section(page_id=page.id, type=stype, sort_order=next_order(Section, page_id=page.id),
-                  **{k: v for k, v in d.items()})
-    db.session.add(sec)
-    db.session.commit()
-    flash("Section added. Fill it in below.", "ok")
-    return redirect(url_for("admin_section", sid=sec.id))
-
-
-@app.route("/admin/sections/<int:sid>", methods=["GET", "POST"])
-@login_required
-def admin_section(sid):
-    sec = db.get_or_404(Section, sid)
-    cfg = SECTION_TYPES[sec.type]
-    if request.method == "POST":
-        set_fields(sec, cfg["fields"])
-        style = request.form.get("style")
-        sec.style = style if style in ("light", "tint", "dark") else "light"
-        sec.is_visible = request.form.get("is_visible") == "on"
-        db.session.commit()
-        flash("Section saved.", "ok")
-        return redirect(url_for("admin_section", sid=sec.id))
-    return render_template("admin/section_edit.html", sec=sec, cfg=cfg)
-
-
-@app.post("/admin/sections/<int:sid>/delete")
-@login_required
-def admin_section_delete(sid):
-    sec = db.get_or_404(Section, sid)
-    pid = sec.page_id
-    db.session.delete(sec)
-    db.session.commit()
-    flash("Section deleted.", "ok")
-    return redirect(url_for("admin_page", pid=pid))
-
-
-@app.post("/admin/sections/<int:sid>/move/<direction>")
-@login_required
-def admin_section_move(sid, direction):
-    sec = db.get_or_404(Section, sid)
-    move(list(sec.page.sections), sec, direction)
-    return redirect(url_for("admin_page", pid=sec.page_id))
-
-
-@app.post("/admin/sections/<int:sid>/toggle")
-@login_required
-def admin_section_toggle(sid):
-    sec = db.get_or_404(Section, sid)
-    sec.is_visible = not sec.is_visible
-    db.session.commit()
-    return redirect(url_for("admin_page", pid=sec.page_id))
-
-
-@app.route("/admin/sections/<int:sid>/boxes/new", methods=["GET", "POST"])
-@app.route("/admin/boxes/<int:bid>", methods=["GET", "POST"])
-@login_required
-def admin_box(sid=None, bid=None):
-    box = db.get_or_404(Box, bid) if bid else None
-    sec = box.section if box else db.get_or_404(Section, sid)
-    cfg = SECTION_TYPES[sec.type]
-    if not cfg["box_fields"]:
-        abort(404)
-    if request.method == "POST":
-        if not box:
-            box = Box(section_id=sec.id, sort_order=next_order(Box, section_id=sec.id))
-            db.session.add(box)
-        set_fields(box, cfg["box_fields"])
-        box.is_visible = request.form.get("is_visible") == "on"
-        db.session.commit()
-        flash("Saved.", "ok")
-        return redirect(url_for("admin_section", sid=sec.id))
-    return render_template("admin/box_edit.html", box=box, sec=sec, cfg=cfg)
-
-
-@app.post("/admin/boxes/<int:bid>/delete")
-@login_required
-def admin_box_delete(bid):
-    box = db.get_or_404(Box, bid)
-    sid = box.section_id
-    db.session.delete(box)
-    db.session.commit()
-    flash("Deleted.", "ok")
-    return redirect(url_for("admin_section", sid=sid))
-
-
-@app.post("/admin/boxes/<int:bid>/move/<direction>")
-@login_required
-def admin_box_move(bid, direction):
-    box = db.get_or_404(Box, bid)
-    move(list(box.section.boxes), box, direction)
-    return redirect(url_for("admin_section", sid=box.section_id))
-
-
-@app.post("/admin/boxes/<int:bid>/toggle")
-@login_required
-def admin_box_toggle(bid):
-    box = db.get_or_404(Box, bid)
-    box.is_visible = not box.is_visible
-    db.session.commit()
-    return redirect(url_for("admin_section", sid=box.section_id))
-
-# --------------------------------------------------------------------------
-# On-page editor ("edit mode"): toggle, and small JSON API used by edit.js
-# --------------------------------------------------------------------------
-
-
-@app.post("/admin/edit-mode/<state>")
-@login_required
-def admin_edit_mode(state):
-    session["edit_mode"] = (state == "on")
-    return redirect(request.form.get("next") or url_for("home"))
-
-
-def _kind_obj(kind, obj_id):
-    model = {"section": Section, "box": Box}.get(kind)
-    if not model:
-        abort(400)
-    return model, db.get_or_404(model, obj_id)
-
-
-@app.post("/admin/api/text")
+@app.get("/admin/api/pages")
 @admin_json_required
-def api_text():
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    cfg = SECTION_TYPES[obj.type if data.get("kind") == "section" else obj.section.type]
-    allowed = cfg["fields"] if data.get("kind") == "section" else cfg["box_fields"]
-    field = data.get("field")
-    if field not in allowed:
-        return jsonify(ok=False, error="That field can't be edited."), 400
-    limit = 5000 if field in LONG_FIELDS else 300
-    setattr(obj, field, (data.get("value") or "").strip()[:limit])
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/style")
-@admin_json_required
-def api_style():
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    obj.font_size = data.get("font_size") if data.get("font_size") in TEXT_SIZES else ""
-    obj.font_family = data.get("font_family") if data.get("font_family") in FONT_STACKS else ""
-    obj.text_align = data.get("text_align") if data.get("text_align") in ALIGN_CHOICES else ""
-    color = (data.get("font_color") or "").strip()
-    obj.font_color = color if HEX_RE.match(color) else ""
-    db.session.commit()
-    return jsonify(ok=True, style=style_attr(obj))
-
-
-@app.post("/admin/api/image")
-@admin_json_required
-def api_image():
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    obj.image_url = (data.get("url") or "").strip()[:300]
-    width = str(data.get("width") or "100")
-    obj.image_width = width if width in WIDTH_CHOICES else "100"
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/image/upload")
-@admin_json_required
-def api_image_upload():
-    """Direct upload from the admin's device (multipart/form-data), instead of pasting a link."""
-    kind, obj_id = request.form.get("kind"), request.form.get("id")
-    _model, obj = _kind_obj(kind, obj_id)
-    file = request.files.get("file")
-    if not file:
-        return jsonify(ok=False, error="No file received."), 400
-    url, err = upload_image_to_supabase(file)
-    if err:
-        return jsonify(ok=False, error=err), 400
-    obj.image_url = url
-    db.session.commit()
-    return jsonify(ok=True, url=url)
-
-
-@app.post("/admin/api/image/delete")
-@admin_json_required
-def api_image_delete():
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    obj.image_url = ""
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/size")
-@admin_json_required
-def api_size():
-    """Free-form box/section size in pixels, set by the admin (replaces the old 25/50/75/100% presets)."""
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    apply_size(obj, data)
-    db.session.commit()
-    return jsonify(ok=True, width=obj.width, height=obj.height)
-
-
-@app.post("/admin/api/overlay")
-@admin_json_required
-def api_overlay():
-    """Toggle: render this box's title/text as a caption over its image instead of below it."""
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    if not hasattr(obj, "overlay"):
-        return jsonify(ok=False, error="Overlay isn't available here."), 400
-    obj.overlay = bool(data.get("overlay"))
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/visibility")
-@admin_json_required
-def api_visibility():
-    data = request.get_json(silent=True) or {}
-    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
-    obj.is_visible = bool(data.get("visible"))
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/reorder")
-@admin_json_required
-def api_reorder():
-    data = request.get_json(silent=True) or {}
-    model, ids = {"section": Section, "box": Box, "page": Page}.get(data.get("kind")), data.get("ids") or []
-    if not model or not isinstance(ids, list) or not ids:
-        abort(400)
-    objs = {o.id: o for o in model.query.filter(model.id.in_(ids)).all()}
-    if len(objs) != len(ids):
-        abort(400)
-    if model is not Page:
-        parent_attr = "page_id" if model is Section else "section_id"
-        if len({getattr(o, parent_attr) for o in objs.values()}) != 1:
-            abort(400)
-    for i, oid in enumerate(ids):
-        objs[oid].sort_order = i
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/section/add")
-@admin_json_required
-def api_section_add():
-    data = request.get_json(silent=True) or {}
-    page = db.get_or_404(Page, data.get("page_id"))
-    stype = data.get("type")
-    if stype not in SECTION_TYPES:
-        abort(400)
-    sec = Section(page_id=page.id, type=stype, sort_order=next_order(Section, page_id=page.id),
-                  **SECTION_TYPES[stype]["defaults"])
-    apply_size(sec, data)
-    db.session.add(sec)
-    db.session.commit()
-    return jsonify(ok=True, id=sec.id)
-
-
-@app.post("/admin/api/section/<int:sid>/delete")
-@admin_json_required
-def api_section_delete(sid):
-    db.session.delete(db.get_or_404(Section, sid))
-    db.session.commit()
-    return jsonify(ok=True)
-
-
-@app.post("/admin/api/box/add")
-@admin_json_required
-def api_box_add():
-    data = request.get_json(silent=True) or {}
-    sec = db.get_or_404(Section, data.get("section_id"))
-    if not SECTION_TYPES[sec.type]["box_fields"]:
-        abort(400)
-    box = Box(section_id=sec.id, sort_order=next_order(Box, section_id=sec.id))
-    apply_size(box, data)
-    db.session.add(box)
-    db.session.commit()
-    return jsonify(ok=True, id=box.id)
-
-
-@app.post("/admin/api/box/<int:bid>/delete")
-@admin_json_required
-def api_box_delete(bid):
-    db.session.delete(db.get_or_404(Box, bid))
-    db.session.commit()
-    return jsonify(ok=True)
+def api_pages_list():
+    pages = Page.query.order_by(Page.sort_order).all()
+    return jsonify(ok=True, pages=[{
+        "id": p.id, "title": p.title, "slug": p.slug,
+        "is_published": p.is_published, "show_in_nav": p.show_in_nav,
+    } for p in pages])
 
 
 @app.post("/admin/api/page/add")
@@ -917,16 +588,6 @@ def api_page_add():
     db.session.commit()
     session["edit_mode"] = True
     return jsonify(ok=True, url=("/" if slug == "home" else "/" + slug))
-
-
-@app.get("/admin/api/pages")
-@admin_json_required
-def api_pages_list():
-    pages = Page.query.order_by(Page.sort_order).all()
-    return jsonify(ok=True, pages=[{
-        "id": p.id, "title": p.title, "slug": p.slug,
-        "is_published": p.is_published, "show_in_nav": p.show_in_nav,
-    } for p in pages])
 
 
 @app.post("/admin/api/page/<int:pid>/update")
@@ -1008,6 +669,90 @@ def admin_message_action(mid, action):
     return redirect(url_for("admin_messages"))
 
 # --------------------------------------------------------------------------
+# On-page editor ("edit mode"): toggle
+# --------------------------------------------------------------------------
+
+
+@app.post("/admin/edit-mode/<state>")
+@login_required
+def admin_edit_mode(state):
+    session["edit_mode"] = (state == "on")
+    return redirect(request.form.get("next") or url_for("home"))
+
+# --------------------------------------------------------------------------
+# Generic content-block API: every editable text/image on every hardcoded page goes
+# through these three endpoints, identified by (page, key). One box's "Save changes"
+# button fires /block/save (text + style) and, if the image was changed, /block/image
+# (multipart upload) together - both from the one click.
+# --------------------------------------------------------------------------
+
+
+def _valid_page_key(page_slug, key):
+    return bool(SAFE_KEY_RE.match(page_slug or "") and SAFE_KEY_RE.match(key or ""))
+
+
+def _get_or_create_block(page_slug, key):
+    row = ContentBlock.query.filter_by(page=page_slug, key=key).first()
+    if not row:
+        row = ContentBlock(page=page_slug, key=key)
+        db.session.add(row)
+    return row
+
+
+@app.post("/admin/api/block/save")
+@admin_json_required
+def api_block_save():
+    """Save a block's text and text style (size, color, font, alignment) in one go."""
+    data = request.get_json(silent=True) or {}
+    page_slug, key = (data.get("page") or "").strip().lower(), (data.get("key") or "").strip().lower()
+    if not _valid_page_key(page_slug, key):
+        return jsonify(ok=False, error="Invalid page or key."), 400
+    row = _get_or_create_block(page_slug, key)
+    row.text = (data.get("text") or "").strip()[:5000]
+    row.font_size = data.get("font_size") if data.get("font_size") in TEXT_SIZES else ""
+    row.font_family = data.get("font_family") if data.get("font_family") in FONT_STACKS else ""
+    row.text_align = data.get("text_align") if data.get("text_align") in ALIGN_CHOICES else ""
+    color = (data.get("font_color") or "").strip()
+    row.font_color = color if HEX_RE.match(color) else ""
+    db.session.commit()
+    return jsonify(ok=True, style=style_attr(row))
+
+
+@app.post("/admin/api/block/image")
+@admin_json_required
+def api_block_image_upload():
+    """Upload/replace a block's image straight from the admin's device.
+    multipart/form-data fields: page, key, file."""
+    page_slug = (request.form.get("page") or "").strip().lower()
+    key = (request.form.get("key") or "").strip().lower()
+    if not _valid_page_key(page_slug, key):
+        return jsonify(ok=False, error="Invalid page or key."), 400
+    file = request.files.get("file")
+    if not file:
+        return jsonify(ok=False, error="No file received."), 400
+    url, err = upload_image_to_supabase(file)
+    if err:
+        return jsonify(ok=False, error=err), 400
+    row = _get_or_create_block(page_slug, key)
+    row.image_url = url
+    db.session.commit()
+    return jsonify(ok=True, url=url)
+
+
+@app.post("/admin/api/block/image/delete")
+@admin_json_required
+def api_block_image_delete():
+    data = request.get_json(silent=True) or {}
+    page_slug, key = (data.get("page") or "").strip().lower(), (data.get("key") or "").strip().lower()
+    if not _valid_page_key(page_slug, key):
+        return jsonify(ok=False, error="Invalid page or key."), 400
+    row = ContentBlock.query.filter_by(page=page_slug, key=key).first()
+    if row:
+        row.image_url = ""
+        db.session.commit()
+    return jsonify(ok=True)
+
+# --------------------------------------------------------------------------
 # First-run setup: tables, first admin, sample content
 # --------------------------------------------------------------------------
 
@@ -1026,22 +771,14 @@ def ensure_admin():
     db.session.commit()
 
 
-NEW_COLUMNS = {
-    "sections": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
-                 ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
-                 ("text_align", "VARCHAR(10) DEFAULT ''"),
-                 ("width", "INTEGER"), ("height", "INTEGER")],
-    "boxes": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
-              ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
-              ("text_align", "VARCHAR(10) DEFAULT ''"),
-              ("width", "INTEGER"), ("height", "INTEGER"), ("overlay", "BOOLEAN DEFAULT FALSE")],
-}
+# Columns to add, non-destructively, to a table that already exists in an already
+# deployed database but is missing a column a newer version of the app introduced.
+# Empty for now since content_blocks is a brand-new table (created fresh by
+# db.create_all()) - add entries here later the same way if new columns are needed.
+NEW_COLUMNS = {}
 
 
 def ensure_columns():
-    """db.create_all() only creates missing TABLES, never new columns on tables that
-    already exist. This adds any columns a newer version of the app introduced, so an
-    already-deployed database (e.g. on Supabase) stays in sync without losing data."""
     insp = inspect(db.engine)
     for table, columns in NEW_COLUMNS.items():
         if table not in insp.get_table_names():
@@ -1060,7 +797,7 @@ def init_db():
         ensure_admin()
         if Page.query.count() == 0:
             from seed_data import seed
-            seed(db, Page, Section, Box, Setting)
+            seed(db, Page, Setting)
 
 
 try:
