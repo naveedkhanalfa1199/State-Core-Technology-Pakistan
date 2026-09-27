@@ -1,7 +1,11 @@
 """State Core Technology - admin-controlled website (Flask + SQLAlchemy + Postgres/Supabase)."""
+import mimetypes
 import os
 import re
 import secrets
+import urllib.error
+import urllib.request
+import uuid
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -26,9 +30,54 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=ON_RENDER,
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
-    MAX_CONTENT_LENGTH=1024 * 1024,
+    # Raised from 1 MB so an uploaded photo (up to MAX_IMAGE_BYTES below) fits in the request.
+    MAX_CONTENT_LENGTH=6 * 1024 * 1024,
 )
 db = SQLAlchemy(app)
+
+# --------------------------------------------------------------------------
+# Supabase Storage (image uploads) - same Supabase project the database is on.
+# Create a PUBLIC bucket in Supabase (Storage -> New bucket) and set these on Render:
+#   SUPABASE_URL            e.g. https://xxxxx.supabase.co
+#   SUPABASE_SERVICE_KEY    Settings -> API -> service_role secret (server-side only, never expose it)
+#   SUPABASE_BUCKET         bucket name, defaults to "uploads"
+# --------------------------------------------------------------------------
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "uploads")
+ALLOWED_IMAGE_EXT = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                      "webp": "image/webp", "gif": "image/gif"}
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+
+def upload_image_to_supabase(file_storage):
+    """Uploads an image file to Supabase Storage. Returns (public_url, None) or (None, error_message)."""
+    if not (SUPABASE_URL and SUPABASE_SERVICE_KEY):
+        return None, "Image storage isn't configured yet. Set SUPABASE_URL and SUPABASE_SERVICE_KEY."
+    name = (file_storage.filename or "").lower()
+    ext = name.rsplit(".", 1)[-1] if "." in name else ""
+    if ext not in ALLOWED_IMAGE_EXT:
+        return None, "Please upload a JPG, PNG, WEBP or GIF image."
+    data = file_storage.read()
+    if not data:
+        return None, "That file is empty."
+    if len(data) > MAX_IMAGE_BYTES:
+        return None, "Image is too large (max 5 MB)."
+    path = "%s.%s" % (uuid.uuid4().hex, ext)
+    upload_url = "%s/storage/v1/object/%s/%s" % (SUPABASE_URL, SUPABASE_BUCKET, path)
+    req = urllib.request.Request(upload_url, data=data, method="POST", headers={
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": "Bearer " + SUPABASE_SERVICE_KEY,
+        "Content-Type": ALLOWED_IMAGE_EXT[ext],
+        "x-upsert": "true",
+    })
+    try:
+        urllib.request.urlopen(req, timeout=15)
+    except urllib.error.HTTPError as e:
+        return None, "Upload failed: %s" % e.read().decode("utf-8", "ignore")[:200]
+    except Exception as e:
+        return None, "Upload failed: %s" % str(e)[:200]
+    return "%s/storage/v1/object/public/%s/%s" % (SUPABASE_URL, SUPABASE_BUCKET, path), None
 
 # --------------------------------------------------------------------------
 # Models
@@ -72,6 +121,8 @@ class Section(db.Model):
     button2_url = db.Column(db.String(300), default="")
     image_url = db.Column(db.String(300), default="")
     image_width = db.Column(db.String(4), default="100")
+    width = db.Column(db.Integer)   # exact px width, admin-chosen (new; replaces the 25/50/75/100% presets)
+    height = db.Column(db.Integer)  # exact px height, admin-chosen
     font_size = db.Column(db.String(4), default="")
     font_color = db.Column(db.String(20), default="")
     font_family = db.Column(db.String(20), default="")
@@ -91,6 +142,9 @@ class Box(db.Model):
     text = db.Column(db.Text, default="")
     image_url = db.Column(db.String(300), default="")
     image_width = db.Column(db.String(4), default="100")
+    width = db.Column(db.Integer)    # exact px width for this box, admin-chosen
+    height = db.Column(db.Integer)   # exact px height for this box, admin-chosen
+    overlay = db.Column(db.Boolean, default=False)  # True: title/text render as a caption over the image
     tag = db.Column(db.String(300), default="")
     link_text = db.Column(db.String(300), default="")
     link_url = db.Column(db.String(300), default="")
@@ -352,6 +406,21 @@ def set_fields(obj, names):
     for n in names:
         limit = 5000 if n in LONG_FIELDS else 300
         setattr(obj, n, (request.form.get(n) or "").strip()[:limit])
+
+
+def clean_dim(v):
+    """Clamp a width/height value (px) sent by the admin to something sane. None if not sent/invalid."""
+    try:
+        v = int(v)
+    except (TypeError, ValueError):
+        return None
+    return max(20, min(v, 2000))
+
+
+def apply_size(obj, data):
+    for k in ("width", "height"):
+        if data.get(k) is not None:
+            setattr(obj, k, clean_dim(data.get(k)))
 
 
 def next_order(model, **flt):
@@ -706,6 +775,57 @@ def api_image():
     return jsonify(ok=True)
 
 
+@app.post("/admin/api/image/upload")
+@admin_json_required
+def api_image_upload():
+    """Direct upload from the admin's device (multipart/form-data), instead of pasting a link."""
+    kind, obj_id = request.form.get("kind"), request.form.get("id")
+    _model, obj = _kind_obj(kind, obj_id)
+    file = request.files.get("file")
+    if not file:
+        return jsonify(ok=False, error="No file received."), 400
+    url, err = upload_image_to_supabase(file)
+    if err:
+        return jsonify(ok=False, error=err), 400
+    obj.image_url = url
+    db.session.commit()
+    return jsonify(ok=True, url=url)
+
+
+@app.post("/admin/api/image/delete")
+@admin_json_required
+def api_image_delete():
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    obj.image_url = ""
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/size")
+@admin_json_required
+def api_size():
+    """Free-form box/section size in pixels, set by the admin (replaces the old 25/50/75/100% presets)."""
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    apply_size(obj, data)
+    db.session.commit()
+    return jsonify(ok=True, width=obj.width, height=obj.height)
+
+
+@app.post("/admin/api/overlay")
+@admin_json_required
+def api_overlay():
+    """Toggle: render this box's title/text as a caption over its image instead of below it."""
+    data = request.get_json(silent=True) or {}
+    _model, obj = _kind_obj(data.get("kind"), data.get("id"))
+    if not hasattr(obj, "overlay"):
+        return jsonify(ok=False, error="Overlay isn't available here."), 400
+    obj.overlay = bool(data.get("overlay"))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
 @app.post("/admin/api/visibility")
 @admin_json_required
 def api_visibility():
@@ -720,13 +840,16 @@ def api_visibility():
 @admin_json_required
 def api_reorder():
     data = request.get_json(silent=True) or {}
-    model, ids = {"section": Section, "box": Box}.get(data.get("kind")), data.get("ids") or []
+    model, ids = {"section": Section, "box": Box, "page": Page}.get(data.get("kind")), data.get("ids") or []
     if not model or not isinstance(ids, list) or not ids:
         abort(400)
     objs = {o.id: o for o in model.query.filter(model.id.in_(ids)).all()}
-    parent_attr = "page_id" if model is Section else "section_id"
-    if len(objs) != len(ids) or len({getattr(o, parent_attr) for o in objs.values()}) != 1:
+    if len(objs) != len(ids):
         abort(400)
+    if model is not Page:
+        parent_attr = "page_id" if model is Section else "section_id"
+        if len({getattr(o, parent_attr) for o in objs.values()}) != 1:
+            abort(400)
     for i, oid in enumerate(ids):
         objs[oid].sort_order = i
     db.session.commit()
@@ -743,9 +866,10 @@ def api_section_add():
         abort(400)
     sec = Section(page_id=page.id, type=stype, sort_order=next_order(Section, page_id=page.id),
                   **SECTION_TYPES[stype]["defaults"])
+    apply_size(sec, data)
     db.session.add(sec)
     db.session.commit()
-    return jsonify(ok=True)
+    return jsonify(ok=True, id=sec.id)
 
 
 @app.post("/admin/api/section/<int:sid>/delete")
@@ -763,9 +887,11 @@ def api_box_add():
     sec = db.get_or_404(Section, data.get("section_id"))
     if not SECTION_TYPES[sec.type]["box_fields"]:
         abort(400)
-    db.session.add(Box(section_id=sec.id, sort_order=next_order(Box, section_id=sec.id)))
+    box = Box(section_id=sec.id, sort_order=next_order(Box, section_id=sec.id))
+    apply_size(box, data)
+    db.session.add(box)
     db.session.commit()
-    return jsonify(ok=True)
+    return jsonify(ok=True, id=box.id)
 
 
 @app.post("/admin/api/box/<int:bid>/delete")
@@ -791,6 +917,49 @@ def api_page_add():
     db.session.commit()
     session["edit_mode"] = True
     return jsonify(ok=True, url=("/" if slug == "home" else "/" + slug))
+
+
+@app.get("/admin/api/pages")
+@admin_json_required
+def api_pages_list():
+    pages = Page.query.order_by(Page.sort_order).all()
+    return jsonify(ok=True, pages=[{
+        "id": p.id, "title": p.title, "slug": p.slug,
+        "is_published": p.is_published, "show_in_nav": p.show_in_nav,
+    } for p in pages])
+
+
+@app.post("/admin/api/page/<int:pid>/update")
+@admin_json_required
+def api_page_update(pid):
+    page = db.get_or_404(Page, pid)
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()[:120]
+    slug = clean_slug(data.get("slug") or title)
+    if not title or not slug:
+        return jsonify(ok=False, error="A page needs a title and a web address."), 400
+    if slug in RESERVED_SLUGS:
+        return jsonify(ok=False, error="That web address is reserved. Pick another."), 400
+    clash = Page.query.filter_by(slug=slug).first()
+    if clash and clash.id != page.id:
+        return jsonify(ok=False, error="Another page already uses that web address."), 400
+    page.title, page.slug = title, slug
+    page.meta_description = (data.get("meta_description") or "").strip()[:300]
+    page.show_in_nav = bool(data.get("show_in_nav"))
+    page.is_published = bool(data.get("is_published"))
+    db.session.commit()
+    return jsonify(ok=True)
+
+
+@app.post("/admin/api/page/<int:pid>/delete")
+@admin_json_required
+def api_page_delete_json(pid):
+    page = db.get_or_404(Page, pid)
+    if page.slug == "home":
+        return jsonify(ok=False, error="The home page can't be deleted."), 400
+    db.session.delete(page)
+    db.session.commit()
+    return jsonify(ok=True)
 
 # --------------------------------------------------------------------------
 # Admin: settings and messages
@@ -860,10 +1029,12 @@ def ensure_admin():
 NEW_COLUMNS = {
     "sections": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
                  ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
-                 ("text_align", "VARCHAR(10) DEFAULT ''")],
+                 ("text_align", "VARCHAR(10) DEFAULT ''"),
+                 ("width", "INTEGER"), ("height", "INTEGER")],
     "boxes": [("image_width", "VARCHAR(4) DEFAULT '100'"), ("font_size", "VARCHAR(4) DEFAULT ''"),
               ("font_color", "VARCHAR(20) DEFAULT ''"), ("font_family", "VARCHAR(20) DEFAULT ''"),
-              ("text_align", "VARCHAR(10) DEFAULT ''")],
+              ("text_align", "VARCHAR(10) DEFAULT ''"),
+              ("width", "INTEGER"), ("height", "INTEGER"), ("overlay", "BOOLEAN DEFAULT FALSE")],
 }
 
 
