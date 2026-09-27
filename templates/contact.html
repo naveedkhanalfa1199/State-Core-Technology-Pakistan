@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% set PLACEHOLDER = "https://picsum.photos/seed/sctcontact/800/600" %}
+
+{% macro eb(key, default_text, with_image=True, tag='div', cls='') %}
+{% set b = block('contact', key) %}
+<div class="eb {{ cls }}" data-page="contact" data-key="{{ key }}">
+  {% if with_image %}
+  <div class="eb-imgwrap">
+    <img class="eb-img" src="{{ b.image_url or PLACEHOLDER }}" alt="">
+    {% if edit_mode %}<label class="eb-upload-btn">Change image<input type="file" accept="image/*" class="eb-file" hidden></label>{% endif %}
+    <div class="eb-caption eb-text"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</div>
+  </div>
+  {% else %}
+  <{{ tag }} class="eb-text"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</{{ tag }}>
+  {% endif %}
+  {% if edit_mode %}<button type="button" class="eb-save-btn" data-eb-save>Save changes</button>{% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="ct">
+
+<section class="c-sec" id="contact">
+  <div class="c-wrap c-in">
+    <div class="c-copy">
+      {{ eb('heading', 'Tell us about your project', with_image=False, tag='h1', cls='c-h') }}
+      {{ eb('subheading', "We reply within one working day with a clear next step.", with_image=False, tag='p', cls='c-lead') }}
+      {{ eb('body', 'Fixed price for well-defined scopes, or a monthly retainer for ongoing product work - either way you get a written quote before anything starts.', with_image=False, tag='p', cls='c-body') }}
+
+      <ul class="c-info">
+        {% if site.email %}<li><span>Email</span><a href="mailto:{{ site.email }}">{{ site.email }}</a></li>{% endif %}
+        {% if site.phone %}<li><span>Phone</span>{{ site.phone }}</li>{% endif %}
+        {% if site.address %}<li><span>Location</span>{{ site.address }}</li>{% endif %}
+      </ul>
+
+      {{ eb('visual', 'Add text here', cls='c-box') }}
+    </div>
+
+    <form class="c-form" method="post" action="/contact-submit">
+      {% for cat, msg in get_flashed_messages(with_categories=true) %}<p class="c-flash c-flash--{{ cat }}" role="status">{{ msg }}</p>{% endfor %}
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="slug" value="contact">
+      <input class="c-hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label>Your name<input name="name" required maxlength="120" autocomplete="name"></label>
+      <label>Email<input type="email" name="email" required maxlength="200" autocomplete="email"></label>
+      <label>Subject<input name="subject" maxlength="200"></label>
+      <label>Message<textarea name="message" rows="6" required maxlength="5000"></textarea></label>
+      <button class="c-btn c-btn--primary" type="submit">Send message</button>
+    </form>
+  </div>
+</section>
+
+</div>
+
+<style>
+.ct{--c-brand:var(--brand);--c-accent:var(--accent);--c-ink:#12131a;--c-sub:#5b5f6b;--c-line:#e7e7ee;font-family:'Inter',system-ui,sans-serif;color:var(--c-ink)}
+.c-wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.c-sec{padding:90px 0}
+.c-in{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+
+.c-h{font-size:clamp(2rem,4vw,2.6rem);font-weight:800;margin:0 0 14px}
+.c-lead{font-size:1.1rem;font-weight:600;color:var(--c-brand);margin:0 0 16px}
+.c-body{color:var(--c-sub);line-height:1.7;margin:0 0 26px}
+
+.c-info{list-style:none;margin:0 0 26px;padding:0;display:flex;flex-direction:column;gap:10px}
+.c-info li{display:flex;gap:10px;font-size:.95rem}
+.c-info span{font-weight:700;min-width:70px;color:var(--c-sub)}
+.c-info a{color:var(--c-ink);text-decoration:none}
+
+.c-box{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--c-line)}
+.eb-imgwrap{position:relative;width:100%;aspect-ratio:4/3;min-height:150px}
+.eb-img{width:100%;height:100%;object-fit:cover;display:block}
+.eb-caption{position:absolute;left:0;right:0;bottom:0;padding:18px;color:#fff;font-weight:600;white-space:pre-line;line-height:1.4;background:linear-gradient(0deg,rgba(0,0,0,.75),rgba(0,0,0,0) 75%)}
+.eb-upload-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);color:#12131a;font-size:.72rem;font-weight:700;padding:6px 10px;border-radius:7px;cursor:pointer;z-index:2}
+.eb-save-btn{display:block;width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:var(--c-accent);color:#12131a;font-weight:700;font-size:.82rem;cursor:pointer}
+.eb-text[contenteditable]{outline:2px dashed transparent;cursor:text}
+.eb-text[contenteditable]:focus{outline:2px dashed var(--c-accent)}
+.c-h.eb-text,.c-lead.eb-text,.c-body.eb-text{background:transparent;color:inherit}
+
+.c-form{display:flex;flex-direction:column;gap:16px;background:#f6f6fa;padding:30px;border-radius:16px}
+.c-form label{display:flex;flex-direction:column;gap:6px;font-size:.88rem;font-weight:600;color:var(--c-sub)}
+.c-form input,.c-form textarea{font:inherit;padding:.75em .9em;border-radius:9px;border:1px solid var(--c-line);background:#fff;color:var(--c-ink)}
+.c-form input:focus,.c-form textarea:focus{outline:2px solid var(--c-accent)}
+.c-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.c-btn{display:inline-block;padding:.85em 1.6em;border-radius:10px;font-weight:700;text-decoration:none;font-size:.95rem;border:none;cursor:pointer}
+.c-btn--primary{background:var(--c-brand);color:#fff}
+.c-flash{padding:10px 14px;border-radius:8px;font-size:.9rem;font-weight:600}
+.c-flash--ok{background:#e3f7ea;color:#137a3d}
+.c-flash--error{background:#fdeaea;color:#b3261e}
+
+@media (max-width:900px){
+  .c-in{grid-template-columns:1fr}
+}
+</style>
+
+{% if edit_mode %}
+<script>
+(function(){
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  var csrf = meta ? meta.content : '';
+  document.querySelectorAll('.eb').forEach(function(box){
+    var saveBtn = box.querySelector('[data-eb-save]');
+    if(!saveBtn) return;
+    var fileInput = box.querySelector('.eb-file');
+    if(fileInput){
+      fileInput.addEventListener('change', function(){
+        if(fileInput.files && fileInput.files[0]){
+          box.querySelector('.eb-img').src = URL.createObjectURL(fileInput.files[0]);
+        }
+      });
+    }
+    saveBtn.addEventListener('click', function(){
+      var page = box.dataset.page, key = box.dataset.key;
+      var textEl = box.querySelector('.eb-text');
+      var text = textEl ? textEl.innerText.trim() : '';
+      saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
+      fetch('/admin/api/block/save', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({csrf_token: csrf, page: page, key: key, text: text})
+      }).then(function(r){ return r.json(); }).then(function(r1){
+        if(!r1.ok){ alert(r1.error || 'Could not save text.'); saveBtn.disabled=false; saveBtn.textContent='Save changes'; return; }
+        if(fileInput && fileInput.files && fileInput.files[0]){
+          var fd = new FormData();
+          fd.append('csrf_token', csrf); fd.append('page', page); fd.append('key', key); fd.append('file', fileInput.files[0]);
+          fetch('/admin/api/block/image', {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(r2){
+            saveBtn.disabled = false;
+            if(!r2.ok){ alert(r2.error || 'Could not save image.'); saveBtn.textContent='Save changes'; return; }
+            if(r2.url) box.querySelector('.eb-img').src = r2.url;
+            saveBtn.textContent = 'Saved';
+            setTimeout(function(){ saveBtn.textContent='Save changes'; }, 1500);
+          });
+        } else {
+          saveBtn.disabled = false; saveBtn.textContent = 'Saved';
+          setTimeout(function(){ saveBtn.textContent='Save changes'; }, 1500);
+        }
+      });
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
