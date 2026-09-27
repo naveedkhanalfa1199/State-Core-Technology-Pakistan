@@ -3,18 +3,21 @@
 
 {% macro eb(key, default_text, with_image=True, tag='div', cls='') %}
 {% set b = block('services', key) %}
+{% if with_image %}
 <div class="eb {{ cls }}" data-page="services" data-key="{{ key }}">
-  {% if with_image %}
   <div class="eb-imgwrap">
     <img class="eb-img" src="{{ b.image_url or PLACEHOLDER }}" alt="">
     {% if edit_mode %}<label class="eb-upload-btn">Change image<input type="file" accept="image/*" class="eb-file" hidden></label>{% endif %}
     <div class="eb-caption eb-text"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</div>
   </div>
-  {% else %}
-  <{{ tag }} class="eb-text"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</{{ tag }}>
-  {% endif %}
   {% if edit_mode %}<button type="button" class="eb-save-btn" data-eb-save>Save changes</button>{% endif %}
 </div>
+{% else %}
+<div class="eb" data-page="services" data-key="{{ key }}">
+  <{{ tag }} class="eb-text {{ cls }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</{{ tag }}>
+  {% if edit_mode %}<button type="button" class="eb-save-btn" data-eb-save>Save changes</button>{% endif %}
+</div>
+{% endif %}
 {% endmacro %}
 
 {% block content %}
