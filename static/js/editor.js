@@ -96,35 +96,65 @@
     });
   });
 
-  // ---- Image change / resize ------------------------------------------------
+  // ---- Image: upload / link / size / overlay / remove -----------------------
   document.querySelectorAll(".ed-img-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       closePopovers();
       var kind = btn.getAttribute("data-img-kind"), id = +btn.getAttribute("data-img-id");
-      var width = btn.getAttribute("data-img-width") || "100";
       var img = btn.parentElement.querySelector("img");
       var pop = document.createElement("div");
       pop.className = "ed-pop";
+      pop.style.minWidth = "260px";
       pop.innerHTML = "<button class='close' type='button'>&times;</button><h4>Image</h4>" +
-        "<label>Image link (URL)<input type='url' value='" + (img ? img.getAttribute("src") : "") + "' placeholder='https://...'></label>" +
-        "<label>Width<div class='row'>" +
-        ["25", "50", "75", "100"].map(function (w) { return "<button type='button' data-w='" + w + "' class='" + (w === width ? "on" : "") + "'>" + w + "%</button>"; }).join("") +
-        "</div></label>";
+        "<label>Upload from device<input type='file' accept='.jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif'></label>" +
+        "<p class='ed-upload-msg' style='display:none;font-size:.8rem'></p>" +
+        "<label>Or paste an image link<input type='url' value='" + (img ? img.getAttribute("src") : "") + "' placeholder='https://...'></label>" +
+        "<label>Box width (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-w'></label>" +
+        "<label>Box height (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-h'></label>" +
+        (kind === "box" ? "<label class='ed-check'><input type='checkbox' class='ed-overlay'> Show text as a caption over the image</label>" : "") +
+        "<button type='button' class='ed-reset ed-img-remove' style='width:100%;margin-top:.4rem;padding:.4rem;border:1px solid #eecaca;color:#a11a1a;border-radius:6px;background:#fff;cursor:pointer'>Remove image</button>";
       positionPopover(pop, btn);
-      var urlInput = pop.querySelector("input");
-      var chosenWidth = width;
-      pop.querySelectorAll(".row button").forEach(function (b) {
-        b.addEventListener("click", function () {
-          pop.querySelectorAll(".row button").forEach(function (x) { x.classList.remove("on"); });
-          b.classList.add("on"); chosenWidth = b.getAttribute("data-w");
-          save();
-        });
+      var msg = pop.querySelector(".ed-upload-msg");
+
+      pop.querySelector("input[type=file]").addEventListener("change", function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        msg.style.display = "block"; msg.style.color = "#171540"; msg.textContent = "Uploading...";
+        var fd = new FormData();
+        fd.append("kind", kind); fd.append("id", id); fd.append("file", file); fd.append("csrf_token", CSRF);
+        fetch("/admin/api/image/upload", { method: "POST", body: fd })
+          .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+          .then(function (r) {
+            if (r.ok) location.reload();
+            else { msg.style.color = "#a11a1a"; msg.textContent = r.error || "Upload failed."; }
+          });
       });
-      urlInput.addEventListener("change", save);
-      function save() {
-        post("/admin/api/image", { kind: kind, id: id, url: urlInput.value.trim(), width: chosenWidth })
+
+      pop.querySelector("input[type=url]").addEventListener("change", function (e) {
+        post("/admin/api/image", { kind: kind, id: id, url: e.target.value.trim(), width: "100" })
           .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
+      });
+
+      function saveSize() {
+        post("/admin/api/size", {
+          kind: kind, id: id,
+          width: pop.querySelector(".ed-w").value, height: pop.querySelector(".ed-h").value,
+        }).then(function (r) { if (!r.ok) toast(r.error || "Could not save size.", false); });
       }
+      pop.querySelector(".ed-w").addEventListener("change", saveSize);
+      pop.querySelector(".ed-h").addEventListener("change", saveSize);
+
+      var overlayBox = pop.querySelector(".ed-overlay");
+      if (overlayBox) overlayBox.addEventListener("change", function () {
+        post("/admin/api/overlay", { kind: kind, id: id, overlay: overlayBox.checked })
+          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not save.", false); });
+      });
+
+      pop.querySelector(".ed-img-remove").addEventListener("click", function () {
+        post("/admin/api/image/delete", { kind: kind, id: id })
+          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not remove.", false); });
+      });
+
       pop.querySelector(".close").addEventListener("click", closePopovers);
     });
   });
@@ -218,11 +248,28 @@
     });
   });
 
-  // ---- Add box / add section ---------------------------------------------------
+  // ---- Add box / add section (asks for a size first) ---------------------------
+  function sizeFields() {
+    return "<label>Width (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-w'></label>" +
+      "<label>Height (px)<input type='number' min='20' max='2000' placeholder='auto' class='ed-h'></label>";
+  }
   document.querySelectorAll(".ed-add-box").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      post("/admin/api/box/add", { section_id: +btn.getAttribute("data-add-section") })
-        .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not add.", false); });
+      closePopovers();
+      var pop = document.createElement("div");
+      pop.className = "ed-pop";
+      pop.style.minWidth = "240px";
+      pop.innerHTML = "<button class='close' type='button'>&times;</button><h4>Box size</h4>" +
+        sizeFields() +
+        "<button type='button' class='ed-reset' style='width:100%;margin-top:.7rem;padding:.5rem;border:none;border-radius:6px;background:#3b2fd6;color:#fff;cursor:pointer'>Add</button>";
+      positionPopover(pop, btn);
+      pop.querySelector(".ed-reset").addEventListener("click", function () {
+        post("/admin/api/box/add", {
+          section_id: +btn.getAttribute("data-add-section"),
+          width: pop.querySelector(".ed-w").value, height: pop.querySelector(".ed-h").value,
+        }).then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not add.", false); });
+      });
+      pop.querySelector(".close").addEventListener("click", closePopovers);
     });
   });
   var addSecBtn = document.getElementById("ed-add-section-btn");
@@ -235,11 +282,14 @@
       pop.style.minWidth = "260px";
       pop.innerHTML = "<button class='close' type='button'>&times;</button><h4>Add a section</h4>" +
         "<select>" + types.map(function (t) { return "<option value='" + t[0] + "'>" + t[1] + "</option>"; }).join("") + "</select>" +
+        sizeFields() +
         "<button type='button' class='ed-reset' style='width:100%;margin-top:.7rem;padding:.5rem;border:none;border-radius:6px;background:#3b2fd6;color:#fff;cursor:pointer'>Add section</button>";
       positionPopover(pop, addSecBtn);
       pop.querySelector(".ed-reset").addEventListener("click", function () {
-        post("/admin/api/section/add", { page_id: window.EDITOR_PAGE_ID, type: pop.querySelector("select").value })
-          .then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not add.", false); });
+        post("/admin/api/section/add", {
+          page_id: window.EDITOR_PAGE_ID, type: pop.querySelector("select").value,
+          width: pop.querySelector(".ed-w").value, height: pop.querySelector(".ed-h").value,
+        }).then(function (r) { if (r.ok) location.reload(); else toast(r.error || "Could not add.", false); });
       });
       pop.querySelector(".close").addEventListener("click", closePopovers);
     });
