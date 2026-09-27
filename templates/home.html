@@ -198,12 +198,11 @@
 .h-grid--6{grid-template-columns:repeat(6,1fr)}
 
 .h-box{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--h-line)}
-.h-box--tall{aspect-ratio:4/5}
 .h-box--stat{background:#1b1c26;border-color:#2a2b38}
 .h-box--quote{background:#1b1c26;border-color:#2a2b38}
-.eb-imgwrap{position:relative;width:100%;height:100%;min-height:150px}
+.eb-imgwrap{position:relative;width:100%;min-height:150px;aspect-ratio:1/1}
 .h-box--card .eb-imgwrap{aspect-ratio:4/3}
-.h-box:not(.h-box--card):not(.h-box--tall) .eb-imgwrap{aspect-ratio:1/1}
+.h-box--tall .eb-imgwrap{aspect-ratio:4/5}
 .eb-img{width:100%;height:100%;object-fit:cover;display:block}
 .eb-caption{position:absolute;left:0;right:0;bottom:0;padding:18px;color:#fff;font-weight:600;white-space:pre-line;line-height:1.4;background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,0) 75%)}
 .eb-upload-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);color:#12131a;font-size:.72rem;font-weight:700;padding:6px 10px;border-radius:7px;cursor:pointer;z-index:2}
