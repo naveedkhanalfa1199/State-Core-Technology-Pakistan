@@ -81,13 +81,12 @@
 <section class="h-sec">
   <div class="h-wrap">
     <h2 class="h-sec__title">What we work with</h2>
-    <div class="h-grid h-grid--6">
+    <div class="h-grid h-grid--5">
       {{ eb('highlight_1', 'Add text here', cls='h-box') }}
       {{ eb('highlight_2', 'Add text here', cls='h-box') }}
       {{ eb('highlight_3', 'Add text here', cls='h-box') }}
       {{ eb('highlight_4', 'Add text here', cls='h-box') }}
       {{ eb('highlight_5', 'Add text here', cls='h-box') }}
-      {{ eb('highlight_6', 'Add text here', cls='h-box') }}
     </div>
   </div>
 </section>
@@ -195,6 +194,7 @@
 .h-grid{display:grid;gap:22px}
 .h-grid--3{grid-template-columns:repeat(3,1fr)}
 .h-grid--4{grid-template-columns:repeat(4,1fr)}
+.h-grid--5{grid-template-columns:repeat(5,1fr)}
 .h-grid--6{grid-template-columns:repeat(6,1fr)}
 
 .h-box{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1px solid var(--h-line)}
@@ -227,7 +227,7 @@
 
 @media (max-width:900px){
   .h-hero__in{grid-template-columns:1fr}
-  .h-grid--3,.h-grid--4,.h-grid--6{grid-template-columns:repeat(2,1fr)}
+  .h-grid--3,.h-grid--4,.h-grid--5,.h-grid--6{grid-template-columns:repeat(2,1fr)}
 }
 </style>
 
