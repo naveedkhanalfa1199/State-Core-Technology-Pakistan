@@ -207,15 +207,53 @@
 .hl-5 .eb-text2{margin-top:0px}
 
 /* highlight boxes (What we create) + project boxes (Our Few Projects):
-   image 60% on top, heading 40% below on light green, text stuck to top of its area */
-.h-box.hl-1 .eb-imgwrap,.h-box.hl-2 .eb-imgwrap,.h-box.hl-3 .eb-imgwrap,.h-box.hl-4 .eb-imgwrap,.h-box.hl-5 .eb-imgwrap,
-.h-box.pr-1 .eb-imgwrap,.h-box.pr-2 .eb-imgwrap,.h-box.pr-3 .eb-imgwrap,.h-box.pr-4 .eb-imgwrap,.h-box.pr-5 .eb-imgwrap,.h-box.pr-6 .eb-imgwrap{display:grid;grid-template-rows:3fr 2fr}
-.h-box.hl-1 .eb-img,.h-box.hl-2 .eb-img,.h-box.hl-3 .eb-img,.h-box.hl-4 .eb-img,.h-box.hl-5 .eb-img,
-.h-box.pr-1 .eb-img,.h-box.pr-2 .eb-img,.h-box.pr-3 .eb-img,.h-box.pr-4 .eb-img,.h-box.pr-5 .eb-img,.h-box.pr-6 .eb-img{grid-row:1;min-height:0}
-.h-box.hl-1 .eb-caption,.h-box.hl-2 .eb-caption,.h-box.hl-3 .eb-caption,.h-box.hl-4 .eb-caption,.h-box.hl-5 .eb-caption,
-.h-box.pr-1 .eb-caption,.h-box.pr-2 .eb-caption,.h-box.pr-3 .eb-caption,.h-box.pr-4 .eb-caption,.h-box.pr-5 .eb-caption,.h-box.pr-6 .eb-caption{
-  grid-row:2;position:static;min-height:0;overflow:auto;padding-top:0;
-  background:#eef8f1;color:#12131a}
+   image 60% on top, heading 40% below on light green, text flush to top, no scrollbar */
+.h-box.hl-1 .eb-imgwrap,
+.h-box.hl-2 .eb-imgwrap,
+.h-box.hl-3 .eb-imgwrap,
+.h-box.hl-4 .eb-imgwrap,
+.h-box.hl-5 .eb-imgwrap,
+.h-box.pr-1 .eb-imgwrap,
+.h-box.pr-2 .eb-imgwrap,
+.h-box.pr-3 .eb-imgwrap,
+.h-box.pr-4 .eb-imgwrap,
+.h-box.pr-5 .eb-imgwrap,
+.h-box.pr-6 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}
+.h-box.hl-1 .eb-img,
+.h-box.hl-2 .eb-img,
+.h-box.hl-3 .eb-img,
+.h-box.hl-4 .eb-img,
+.h-box.hl-5 .eb-img,
+.h-box.pr-1 .eb-img,
+.h-box.pr-2 .eb-img,
+.h-box.pr-3 .eb-img,
+.h-box.pr-4 .eb-img,
+.h-box.pr-5 .eb-img,
+.h-box.pr-6 .eb-img{grid-row:1;min-height:0}
+.h-box.hl-1 .eb-caption,
+.h-box.hl-2 .eb-caption,
+.h-box.hl-3 .eb-caption,
+.h-box.hl-4 .eb-caption,
+.h-box.hl-5 .eb-caption,
+.h-box.pr-1 .eb-caption,
+.h-box.pr-2 .eb-caption,
+.h-box.pr-3 .eb-caption,
+.h-box.pr-4 .eb-caption,
+.h-box.pr-5 .eb-caption,
+.h-box.pr-6 .eb-caption{
+  grid-row:2;position:static;min-height:0;overflow:hidden;padding-top:0;
+  white-space:normal;background:#eef8f1;color:#12131a}
+.h-box.hl-1 .eb-text1,
+.h-box.hl-2 .eb-text1,
+.h-box.hl-3 .eb-text1,
+.h-box.hl-4 .eb-text1,
+.h-box.hl-5 .eb-text1,
+.h-box.pr-1 .eb-text1,
+.h-box.pr-2 .eb-text1,
+.h-box.pr-3 .eb-text1,
+.h-box.pr-4 .eb-text1,
+.h-box.pr-5 .eb-text1,
+.h-box.pr-6 .eb-text1{white-space:pre-line;line-height:1.25;margin-top:0}
 
 /* hero visual box */
 .hv-1 .eb-imgwrap{aspect-ratio:4/5}
