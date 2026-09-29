@@ -26,7 +26,7 @@
 </div>
 {% endmacro %}
 
-{% macro eb(key, default_text, with_image=True, tag='div', cls='', default_text2='Add subheading here') %}
+{% macro eb(key, default_text, with_image=True, tag='div', cls='', default_text2='Add subheading here', with_sub=True) %}
 {% set b = block('home', key, default_text2=default_text2) %}
 {% if with_image %}
 <div class="eb {{ cls }}" data-page="home" data-key="{{ key }}">
@@ -35,13 +35,17 @@
     {% if edit_mode %}<label class="eb-upload-btn">Change image<input type="file" accept="image/*" class="eb-file" hidden></label>{% endif %}
     <div class="eb-caption">
       <div class="eb-text eb-text1" style="{{ b|stylevars }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text or default_text }}</div>
+      {% if with_sub %}
       <div class="eb-text eb-text2" style="{{ b|stylevars2 }}"{% if edit_mode %} contenteditable="true"{% endif %}>{{ b.text2 or default_text2 }}</div>
+      {% endif %}
     </div>
   </div>
   {% if edit_mode %}
   <div class="eb-toolbar">
     {{ style_controls(b, '', 'Heading') }}
+    {% if with_sub %}
     {{ style_controls(b, '2', 'Subheading') }}
+    {% endif %}
   </div>
   <button type="button" class="eb-save-btn" data-eb-save>Save changes</button>
   {% endif %}
@@ -82,11 +86,11 @@
   <div class="h-wrap">
     <h2 class="h-sec__title">What we create</h2>
     <div class="h-grid h-grid--5">
-      {{ eb('highlight_1', 'Add text here', cls='h-box hl-1') }}
-      {{ eb('highlight_2', 'Add text here', cls='h-box hl-2') }}
-      {{ eb('highlight_3', 'Add text here', cls='h-box hl-3') }}
-      {{ eb('highlight_4', 'Add text here', cls='h-box hl-4') }}
-      {{ eb('highlight_5', 'Add text here', cls='h-box hl-5') }}
+      {{ eb('highlight_1', 'Add text here', cls='h-box hl-1', with_sub=False) }}
+      {{ eb('highlight_2', 'Add text here', cls='h-box hl-2', with_sub=False) }}
+      {{ eb('highlight_3', 'Add text here', cls='h-box hl-3', with_sub=False) }}
+      {{ eb('highlight_4', 'Add text here', cls='h-box hl-4', with_sub=False) }}
+      {{ eb('highlight_5', 'Add text here', cls='h-box hl-5', with_sub=False) }}
     </div>
   </div>
 </section>
@@ -96,12 +100,12 @@
     <h2 class="h-sec__title">Our Few Projects</h2>
     <p class="h-sec__sub">Here is a brief overview of few projects that we have deployed.</p>
     <div class="h-grid h-grid--3">
-      {{ eb('project_1', 'Add text here', cls='h-box h-box--card pr-1') }}
-      {{ eb('project_2', 'Add text here', cls='h-box h-box--card pr-2') }}
-      {{ eb('project_3', 'Add text here', cls='h-box h-box--card pr-3') }}
-      {{ eb('project_4', 'Add text here', cls='h-box h-box--card pr-4') }}
-      {{ eb('project_5', 'Add text here', cls='h-box h-box--card pr-5') }}
-      {{ eb('project_6', 'Add text here', cls='h-box h-box--card pr-6') }}
+      {{ eb('project_1', 'Add text here', cls='h-box h-box--card pr-1', with_sub=False) }}
+      {{ eb('project_2', 'Add text here', cls='h-box h-box--card pr-2', with_sub=False) }}
+      {{ eb('project_3', 'Add text here', cls='h-box h-box--card pr-3', with_sub=False) }}
+      {{ eb('project_4', 'Add text here', cls='h-box h-box--card pr-4', with_sub=False) }}
+      {{ eb('project_5', 'Add text here', cls='h-box h-box--card pr-5', with_sub=False) }}
+      {{ eb('project_6', 'Add text here', cls='h-box h-box--card pr-6', with_sub=False) }}
     </div>
     <p class="h-sec__more"><a class="h-btn h-btn--primary" href="/portfolio">View all projects</a></p>
   </div>
@@ -202,11 +206,15 @@
 .hl-5 .eb-caption{padding:15px}
 .hl-5 .eb-text2{margin-top:0px}
 
-/* highlight boxes (What we create): image 60% on top, text 40% below on light green */
-.hl-1 .eb-imgwrap,.hl-2 .eb-imgwrap,.hl-3 .eb-imgwrap,.hl-4 .eb-imgwrap,.hl-5 .eb-imgwrap{display:grid;grid-template-rows:3fr 2fr}
-.hl-1 .eb-img,.hl-2 .eb-img,.hl-3 .eb-img,.hl-4 .eb-img,.hl-5 .eb-img{grid-row:1;min-height:0}
-.hl-1 .eb-caption,.hl-2 .eb-caption,.hl-3 .eb-caption,.hl-4 .eb-caption,.hl-5 .eb-caption{
-  grid-row:2;position:static;min-height:0;overflow:auto;
+/* highlight boxes (What we create) + project boxes (Our Few Projects):
+   image 60% on top, heading 40% below on light green, text stuck to top of its area */
+.h-box.hl-1 .eb-imgwrap,.h-box.hl-2 .eb-imgwrap,.h-box.hl-3 .eb-imgwrap,.h-box.hl-4 .eb-imgwrap,.h-box.hl-5 .eb-imgwrap,
+.h-box.pr-1 .eb-imgwrap,.h-box.pr-2 .eb-imgwrap,.h-box.pr-3 .eb-imgwrap,.h-box.pr-4 .eb-imgwrap,.h-box.pr-5 .eb-imgwrap,.h-box.pr-6 .eb-imgwrap{display:grid;grid-template-rows:3fr 2fr}
+.h-box.hl-1 .eb-img,.h-box.hl-2 .eb-img,.h-box.hl-3 .eb-img,.h-box.hl-4 .eb-img,.h-box.hl-5 .eb-img,
+.h-box.pr-1 .eb-img,.h-box.pr-2 .eb-img,.h-box.pr-3 .eb-img,.h-box.pr-4 .eb-img,.h-box.pr-5 .eb-img,.h-box.pr-6 .eb-img{grid-row:1;min-height:0}
+.h-box.hl-1 .eb-caption,.h-box.hl-2 .eb-caption,.h-box.hl-3 .eb-caption,.h-box.hl-4 .eb-caption,.h-box.hl-5 .eb-caption,
+.h-box.pr-1 .eb-caption,.h-box.pr-2 .eb-caption,.h-box.pr-3 .eb-caption,.h-box.pr-4 .eb-caption,.h-box.pr-5 .eb-caption,.h-box.pr-6 .eb-caption{
+  grid-row:2;position:static;min-height:0;overflow:auto;padding-top:0;
   background:#eef8f1;color:#12131a}
 
 /* hero visual box */
