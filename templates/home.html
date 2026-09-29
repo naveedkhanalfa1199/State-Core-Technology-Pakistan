@@ -202,6 +202,13 @@
 .hl-5 .eb-caption{padding:15px}
 .hl-5 .eb-text2{margin-top:0px}
 
+/* highlight boxes (What we create): image 60% on top, text 40% below on light green */
+.hl-1 .eb-imgwrap,.hl-2 .eb-imgwrap,.hl-3 .eb-imgwrap,.hl-4 .eb-imgwrap,.hl-5 .eb-imgwrap{display:grid;grid-template-rows:3fr 2fr}
+.hl-1 .eb-img,.hl-2 .eb-img,.hl-3 .eb-img,.hl-4 .eb-img,.hl-5 .eb-img{grid-row:1;min-height:0}
+.hl-1 .eb-caption,.hl-2 .eb-caption,.hl-3 .eb-caption,.hl-4 .eb-caption,.hl-5 .eb-caption{
+  grid-row:2;position:static;min-height:0;overflow:auto;
+  background:#eef8f1;color:#12131a}
+
 /* hero visual box */
 .hv-1 .eb-imgwrap{aspect-ratio:4/5}
 .hv-1 .eb-caption{padding:18px}
