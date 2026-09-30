@@ -107,20 +107,6 @@
       {{ eb('project_5', 'Add text here', cls='h-box h-box--card pr-5', with_sub=False) }}
       {{ eb('project_6', 'Add text here', cls='h-box h-box--card pr-6', with_sub=False) }}
     </div>
-    <p class="h-sec__more"><a class="h-btn h-btn--primary" href="/portfolio">View all projects</a></p>
-  </div>
-</section>
-
-<section class="h-sec h-sec--tint">
-  <div class="h-wrap">
-    <h2 class="h-sec__title">How a project runs</h2>
-    <p class="h-sec__sub">Four stages, with a working review at the end of each one.</p>
-    <div class="h-grid h-grid--4">
-      {{ eb('step_1', 'Add text here', cls='h-box sp-1') }}
-      {{ eb('step_2', 'Add text here', cls='h-box sp-2') }}
-      {{ eb('step_3', 'Add text here', cls='h-box sp-3') }}
-      {{ eb('step_4', 'Add text here', cls='h-box sp-4') }}
-    </div>
   </div>
 </section>
 
@@ -207,7 +193,7 @@
 .hl-5 .eb-text2{margin-top:0px}
 
 /* highlight boxes (What we create) + project boxes (Our Few Projects):
-   image 60% on top, heading 40% below on light green, text flush to top, no scrollbar */
+   image 80% on top, heading 20% below on light blue, text flush to top, no scrollbar */
 .h-box.hl-1 .eb-imgwrap,
 .h-box.hl-2 .eb-imgwrap,
 .h-box.hl-3 .eb-imgwrap,
@@ -218,7 +204,7 @@
 .h-box.pr-3 .eb-imgwrap,
 .h-box.pr-4 .eb-imgwrap,
 .h-box.pr-5 .eb-imgwrap,
-.h-box.pr-6 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,3fr) minmax(0,2fr)}
+.h-box.pr-6 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr)}
 .h-box.hl-1 .eb-img,
 .h-box.hl-2 .eb-img,
 .h-box.hl-3 .eb-img,
@@ -242,7 +228,7 @@
 .h-box.pr-5 .eb-caption,
 .h-box.pr-6 .eb-caption{
   grid-row:2;position:static;min-height:0;overflow:hidden;padding-top:0;
-  white-space:normal;background:#eef8f1;color:#12131a}
+  white-space:normal;background:#dbeafe;color:#12131a}
 .h-box.hl-1 .eb-text1,
 .h-box.hl-2 .eb-text1,
 .h-box.hl-3 .eb-text1,
@@ -296,22 +282,22 @@
 
 /* project boxes */
 .pr-1 .eb-imgwrap{aspect-ratio:4/3}
-.pr-1 .eb-caption{padding:18px}
+.pr-1 .eb-caption{padding:2px}
 .pr-1 .eb-text2{margin-top:4px}
 .pr-2 .eb-imgwrap{aspect-ratio:4/3}
-.pr-2 .eb-caption{padding:18px}
+.pr-2 .eb-caption{padding:2px}
 .pr-2 .eb-text2{margin-top:4px}
 .pr-3 .eb-imgwrap{aspect-ratio:4/3}
-.pr-3 .eb-caption{padding:18px}
+.pr-3 .eb-caption{padding:2px}
 .pr-3 .eb-text2{margin-top:4px}
 .pr-4 .eb-imgwrap{aspect-ratio:4/3}
-.pr-4 .eb-caption{padding:18px}
+.pr-4 .eb-caption{padding:2px}
 .pr-4 .eb-text2{margin-top:4px}
 .pr-5 .eb-imgwrap{aspect-ratio:4/3}
-.pr-5 .eb-caption{padding:18px}
+.pr-5 .eb-caption{padding:2px}
 .pr-5 .eb-text2{margin-top:4px}
 .pr-6 .eb-imgwrap{aspect-ratio:4/3}
-.pr-6 .eb-caption{padding:18px}
+.pr-6 .eb-caption{padding:2px}
 .pr-6 .eb-text2{margin-top:4px}
 
 /* process step boxes */
