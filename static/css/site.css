@@ -85,9 +85,12 @@ body::before{
 /* ---------------------------------------------------------------------- */
 .top{position:sticky;top:0;z-index:200;background:color-mix(in srgb, var(--paper) 72%, transparent);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid transparent;transition:box-shadow .25s var(--ease),border-color .25s var(--ease),background-color .25s var(--ease)}
 .top--scrolled{border-bottom-color:var(--line);box-shadow:0 8px 28px -20px rgba(5,6,13,.4)}
-.top__in{display:flex;align-items:center;justify-content:space-between;min-height:76px;gap:1rem}
+.top__in{display:flex;align-items:center;justify-content:space-between;min-height:56px;gap:1rem}
 .logo{display:flex;align-items:center;gap:.7rem;text-decoration:none;font-family:var(--font-display);font-weight:700;font-size:1.3rem;letter-spacing:-.03em}
 .logo img{--logo-h:100px;height:var(--logo-h);width:auto;border-radius:0;margin-bottom:calc(76px - var(--logo-h))}
+/* logo image already contains the site name, so hide the duplicate text next to it
+   (kept for screen readers only). Without an uploaded logo the text still shows. */
+.logo img+span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .logo__mark{width:26px;height:26px;border-radius:9px 9px 9px 3px;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 6px 16px -4px color-mix(in srgb, var(--brand) 65%, transparent);position:relative}
 .logo__mark::after{content:"";position:absolute;inset:5px;border-radius:5px 5px 5px 1px;background:color-mix(in srgb, var(--ink) 88%, transparent)}
 .logo__mark+span{margin-left:4px}
