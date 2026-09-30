@@ -56,6 +56,7 @@
     <div class="foot__contact">
       {% if site.email %}<a href="mailto:{{ site.email }}">{{ site.email }}</a>{% endif %}
       {% if site.phone %}<span>{{ site.phone }}</span>{% endif %}
+      {% if site.address %}<span>{{ site.address }}</span>{% endif %}
       {% for k, label in [('github','GitHub'),('linkedin','LinkedIn'),('instagram','Instagram'),('x_twitter','Facebook')] %}{% if site[k] %}<a href="{{ site[k]|safe_url }}" rel="noopener" target="_blank">{{ label }}</a>{% endif %}{% endfor %}
     </div>
   </div>
