@@ -68,15 +68,12 @@
 <section class="p-sec">
   <div class="p-wrap">
     <div class="p-grid">
-      {{ eb('project_1', 'Add text here', cls='p-box') }}
-      {{ eb('project_2', 'Add text here', cls='p-box') }}
-      {{ eb('project_3', 'Add text here', cls='p-box') }}
-      {{ eb('project_4', 'Add text here', cls='p-box') }}
-      {{ eb('project_5', 'Add text here', cls='p-box') }}
-      {{ eb('project_6', 'Add text here', cls='p-box') }}
-      {{ eb('project_7', 'Add text here', cls='p-box') }}
-      {{ eb('project_8', 'Add text here', cls='p-box') }}
-      {{ eb('project_9', 'Add text here', cls='p-box') }}
+      {{ eb('project_1', 'Add text here', cls='p-box pj-1') }}
+      {{ eb('project_2', 'Add text here', cls='p-box pj-2') }}
+      {{ eb('project_3', 'Add text here', cls='p-box pj-3') }}
+      {{ eb('project_4', 'Add text here', cls='p-box pj-4') }}
+      {{ eb('project_5', 'Add text here', cls='p-box pj-5') }}
+      {{ eb('project_6', 'Add text here', cls='p-box pj-6') }}
     </div>
   </div>
 </section>
@@ -107,6 +104,31 @@
 .eb-imgwrap{position:relative;width:100%;aspect-ratio:4/3;min-height:150px}
 .eb-img{width:100%;height:100%;object-fit:cover;display:block}
 .eb-caption{position:absolute;left:0;right:0;bottom:0;padding:18px;color:#fff;font-weight:600;white-space:pre-line;line-height:1.4;background:linear-gradient(0deg,rgba(0,0,0,.75),rgba(0,0,0,0) 75%)}
+/* project boxes: image 80% on top, heading 20% below on light blue (same as home boxes) - each box independent */
+/* project box 1 */
+.p-box.pj-1 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-1 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-1 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
+/* project box 2 */
+.p-box.pj-2 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-2 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-2 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
+/* project box 3 */
+.p-box.pj-3 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-3 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-3 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
+/* project box 4 */
+.p-box.pj-4 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-4 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-4 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
+/* project box 5 */
+.p-box.pj-5 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-5 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-5 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
+/* project box 6 */
+.p-box.pj-6 .eb-imgwrap{display:grid;grid-template-rows:minmax(0,4fr) minmax(0,1fr);aspect-ratio:4/3}
+.p-box.pj-6 .eb-img{grid-row:1;min-height:0}
+.p-box.pj-6 .eb-caption{grid-row:2;position:static;min-height:0;overflow:hidden;padding:2px;padding-top:0;white-space:pre-line;line-height:1.25;margin-top:0;background:#dbeafe;color:#12131a}
 .eb-upload-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);color:#12131a;font-size:.72rem;font-weight:700;padding:6px 10px;border-radius:7px;cursor:pointer;z-index:2}
 .eb-save-btn{display:block;width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:var(--p-accent);color:#12131a;font-weight:700;font-size:.82rem;cursor:pointer}
 .eb-text[contenteditable]{outline:2px dashed transparent;cursor:text}
