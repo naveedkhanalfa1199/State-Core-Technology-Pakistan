@@ -63,6 +63,23 @@
 {% endif %}
 {% endmacro %}
 
+{% macro faq(key, default_q='Add question here', default_a='Add answer here') %}
+{% set b = block('services', key, default_text2=default_a) %}
+<div class="eb s-faq__item" data-page="services" data-key="{{ key }}">
+  {% if edit_mode %}
+  <div class="s-faq__q eb-text eb-text1" style="{{ b|stylevars }}" contenteditable="true">{{ b.text or default_q }}</div>
+  <div class="s-faq__a eb-text eb-text2" style="{{ b|stylevars2 }}" contenteditable="true">{{ b.text2 or default_a }}</div>
+  <div class="eb-toolbar">
+    {{ style_controls(b, '', 'Question') }}
+    {{ style_controls(b, '2', 'Answer') }}
+  </div>
+  <button type="button" class="eb-save-btn" data-eb-save>Save changes</button>
+  {% else %}
+  <details><summary class="s-faq__q eb-text eb-text1" style="{{ b|stylevars }}">{{ b.text or default_q }}</summary><div class="s-faq__a eb-text eb-text2" style="{{ b|stylevars2 }}">{{ b.text2 or default_a }}</div></details>
+  {% endif %}
+</div>
+{% endmacro %}
+
 {% block content %}
 <div class="svc">
 
@@ -96,11 +113,11 @@
   <div class="s-wrap s-wrap--narrow">
     <h2 class="s-sec__title">Common questions</h2>
     <div class="s-faq">
-      {{ eb('faq_q1', 'Add text here', with_image=False, tag='details', cls='s-faq__item') }}
-      {{ eb('faq_q2', 'Add text here', with_image=False, tag='details', cls='s-faq__item') }}
-      {{ eb('faq_q3', 'Add text here', with_image=False, tag='details', cls='s-faq__item') }}
-      {{ eb('faq_q4', 'Add text here', with_image=False, tag='details', cls='s-faq__item') }}
-      {{ eb('faq_q5', 'Add text here', with_image=False, tag='details', cls='s-faq__item') }}
+      {{ faq('faq_q1') }}
+      {{ faq('faq_q2') }}
+      {{ faq('faq_q3') }}
+      {{ faq('faq_q4') }}
+      {{ faq('faq_q5') }}
     </div>
   </div>
 </section>
@@ -191,7 +208,9 @@
 .eb-f-bold.on,.eb-f-italic.on{background:var(--s-accent);color:#12131a;border-color:var(--s-accent)}
 
 .s-faq{display:flex;flex-direction:column;gap:12px}
-.s-faq__item{border:1px solid var(--s-line);border-radius:10px;padding:16px 18px;white-space:pre-line;line-height:1.6}
+.s-faq__item{border:1px solid var(--s-line);border-radius:10px;padding:16px 18px;white-space:normal;line-height:1.6}
+.s-faq__item .s-faq__q{font-weight:600;cursor:pointer;white-space:pre-line}
+.s-faq__item .s-faq__a{margin-top:10px;font-weight:400;opacity:1;color:var(--s-sub);white-space:pre-line}
 .s-faq__item.eb-text[contenteditable]{cursor:text}
 
 .s-cta{padding:70px 0;background:#f6f6fa}
