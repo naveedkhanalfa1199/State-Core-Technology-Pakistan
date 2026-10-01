@@ -62,16 +62,10 @@
 {% block content %}
 <div class="about">
 
-<section class="a-intro">
-  <div class="a-wrap a-intro__in">
-    <div class="a-intro__copy">
-      {{ eb('intro_heading', 'An engineering-led team that stays close to your product', with_image=False, tag='h1', cls='a-intro__h') }}
-      {{ eb('intro_subheading', 'Built by developers who also join your stand-ups.', with_image=False, tag='p', cls='a-intro__lead') }}
-      {{ eb('intro_body', "State Core Technology started as a small team of engineers who were frustrated by agencies that hand off a PDF and disappear. We build differently: one accountable team, from the first architecture decision to the day your product is running at scale.\n\nEvery client gets a named lead engineer and a project manager who can be reached directly, not a rotating cast of account managers.", with_image=False, tag='p', cls='a-intro__body') }}
-    </div>
-    <div class="a-intro__visual">
-      {{ eb('intro_visual', 'Add text here', cls='a-box a-box--tall') }}
-    </div>
+<section class="a-top">
+  <div class="a-wrap a-top__rows">
+    {{ eb('top_1', 'Add heading here', cls='a-box a-top-1') }}
+    {{ eb('top_2', 'Add heading here', cls='a-box a-top-2') }}
   </div>
 </section>
 
@@ -112,11 +106,12 @@
 .a-btn{display:inline-block;padding:.85em 1.6em;border-radius:10px;font-weight:600;text-decoration:none;font-size:.95rem}
 .a-btn--dark{background:#12131a;color:#fff}
 
-.a-intro{padding:90px 0 60px}
-.a-intro__in{display:grid;grid-template-columns:1fr .85fr;gap:56px;align-items:start}
-.a-intro__h{font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.15;font-weight:800;margin:0 0 14px}
-.a-intro__lead{font-size:1.1rem;font-weight:600;color:var(--a-brand);margin:0 0 20px}
-.a-intro__body{font-size:1rem;color:var(--a-sub);line-height:1.7;white-space:pre-line;margin:0}
+.a-top{padding:90px 0 60px}
+.a-top__rows{display:grid;grid-template-columns:1fr;gap:22px}
+/* top box 1 (bigger, upper row) */
+.a-box.a-top-1 .eb-imgwrap{aspect-ratio:16/6}
+/* top box 2 (smaller, lower row) */
+.a-box.a-top-2 .eb-imgwrap{aspect-ratio:16/4.5}
 
 .a-sec{padding:64px 0}
 .a-sec--tint{background:#f6f6fa}
@@ -138,7 +133,7 @@
 .eb-save-btn{display:block;width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:var(--a-accent);color:#12131a;font-weight:700;font-size:.82rem;cursor:pointer}
 .eb-text[contenteditable]{outline:2px dashed transparent;cursor:text}
 .eb-text[contenteditable]:focus{outline:2px dashed var(--a-accent)}
-.a-intro__h.eb-text,.a-intro__lead.eb-text,.a-intro__body.eb-text,.a-cta__h.eb-text{background:transparent;color:inherit}
+.a-cta__h.eb-text{background:transparent;color:inherit}
 .eb-text2{margin-top:4px;font-weight:400;opacity:.85}
 .eb-toolbar{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px;background:#f3f3f8;border-radius:8px}
 .eb-style{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.7rem}
@@ -154,8 +149,11 @@
 .a-cta__h{font-size:1.8rem;font-weight:800;margin:0}
 
 @media (max-width:900px){
-  .a-intro__in{grid-template-columns:1fr}
   .a-grid--3,.a-grid--4{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:700px){
+  .a-box.a-top-1 .eb-imgwrap{aspect-ratio:4/3}
+  .a-box.a-top-2 .eb-imgwrap{aspect-ratio:4/3}
 }
 </style>
 
