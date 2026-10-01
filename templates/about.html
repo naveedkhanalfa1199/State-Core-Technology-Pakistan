@@ -16,7 +16,7 @@
   <select class="eb-f-font">
     {% for k, v in FONT_CHOICES.items() %}<option value="{{ k }}"{% if ffam==k %} selected{% endif %}>{{ v }}</option>{% endfor %}
   </select>
-  <input type="color" class="eb-f-color" value="{{ fcolor or '#12131a' }}">
+  <input type="color" class="eb-f-color" value="{{ fcolor or '#99FFFF' }}">
   <select class="eb-f-align">
     <option value="">Align</option>
     {% for k, v in ALIGN_CHOICES.items() %}<option value="{{ k }}"{% if falign==k %} selected{% endif %}>{{ v }}</option>{% endfor %}
