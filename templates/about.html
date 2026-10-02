@@ -64,8 +64,14 @@
 
 <section class="a-top">
   <div class="a-wrap a-top__rows">
-    {{ eb('top_1', 'Add heading here', cls='a-box a-top-1') }}
-    {{ eb('top_2', 'Add heading here', cls='a-box a-top-2') }}
+    <div class="a-top__item">
+      <h2 class="a-top-label a-top-label-1">Our Message</h2>
+      {{ eb('top_1', 'Add heading here', cls='a-box a-top-1') }}
+    </div>
+    <div class="a-top__item">
+      <h2 class="a-top-label a-top-label-2">Our Vision</h2>
+      {{ eb('top_2', 'Add heading here', cls='a-box a-top-2') }}
+    </div>
   </div>
 </section>
 
@@ -108,10 +114,14 @@
 
 .a-top{padding:90px 0 60px}
 .a-top__rows{display:grid;grid-template-columns:1fr;gap:22px}
-/* top box 1 (bigger, upper row) */
-.a-box.a-top-1 .eb-imgwrap{aspect-ratio:16/6}
-/* top box 2 (smaller, lower row) */
-.a-box.a-top-2 .eb-imgwrap{aspect-ratio:16/4.5}
+/* label above top box 1 */
+.a-top-label-1{font-size:28px;font-weight:700;line-height:1.2;margin:0 0 8px}
+/* label above top box 2 */
+.a-top-label-2{font-size:28px;font-weight:700;line-height:1.2;margin:0 0 8px}
+/* top box 1 (bigger, upper row) - a little shorter to make room for its label */
+.a-box.a-top-1 .eb-imgwrap{aspect-ratio:16/5.4}
+/* top box 2 (smaller, lower row) - a little shorter to make room for its label */
+.a-box.a-top-2 .eb-imgwrap{aspect-ratio:16/3.9}
 
 .a-sec{padding:64px 0}
 .a-sec--tint{background:#f6f6fa}
