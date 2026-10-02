@@ -158,6 +158,18 @@
   .a-box.a-top-1 .eb-imgwrap{aspect-ratio:4/3}
   .a-box.a-top-2 .eb-imgwrap{aspect-ratio:4/3}
 }
+@media (max-width:600px){
+  /* phone only: image on top, heading + subheading in their own strip below (no overlay, nothing clipped) */
+  .a-box.a-top-1 .eb-imgwrap,
+  .a-box.a-top-2 .eb-imgwrap,
+  .a-box.a-box--card .eb-imgwrap{aspect-ratio:auto;min-height:0;display:flex;flex-direction:column}
+  .a-box.a-top-1 .eb-img,
+  .a-box.a-top-2 .eb-img,
+  .a-box.a-box--card .eb-img{height:auto;aspect-ratio:4/3;flex:none}
+  .a-box.a-top-1 .eb-caption,
+  .a-box.a-top-2 .eb-caption,
+  .a-box.a-box--card .eb-caption{position:static;padding:14px 16px;background:#12131a}
+}
 </style>
 
 {% if edit_mode %}
