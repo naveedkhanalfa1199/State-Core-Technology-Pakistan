@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% set PLACEHOLDER = "https://picsum.photos/seed/sctjobs/800/600" %}
+{% set APPLY_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfFCALOB476P4Kfa6t8SGb8HVH5z4hsNw4sYlQBaE3yF3YDBg/viewform?pli=1" %}
 
 {% macro style_controls(b, prefix, label) %}
 {% set fsize = b|attr('font_size' ~ prefix) %}
@@ -62,11 +63,95 @@
 {% block content %}
 <div class="jobs">
 
+<!-- HERO -->
 <section class="j-hero">
   <div class="j-wrap">
+    <span class="j-badge">We're hiring</span>
     {{ eb('hero_heading', 'Join our team', with_image=False, tag='h1', cls='j-h') }}
     {{ eb('hero_text', 'We are always looking for talented people. Fill in the application form and we will get back to you if there is a match.', with_image=False, tag='p', cls='j-p') }}
-    <a class="j-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfFCALOB476P4Kfa6t8SGb8HVH5z4hsNw4sYlQBaE3yF3YDBg/viewform?pli=1" target="_blank" rel="noopener noreferrer">Apply now</a>
+    <div class="j-actions">
+      <a class="j-btn" href="{{ APPLY_URL }}" target="_blank" rel="noopener noreferrer">Apply now</a>
+      <a class="j-btn j-btn--ghost" href="#why-join">Why join us</a>
+    </div>
+  </div>
+</section>
+
+<!-- WHY JOIN US -->
+<section class="j-section j-alt" id="why-join">
+  <div class="j-wrap j-wrap--wide">
+    {{ eb('why_heading', 'Why work with us?', with_image=False, tag='h2', cls='j-h2') }}
+    {{ eb('why_sub', 'We believe great work happens when people feel trusted, supported and challenged.', with_image=False, tag='p', cls='j-sub') }}
+    <div class="j-grid">
+      <div class="j-card">
+        <div class="j-ico">🚀</div>
+        {{ eb('card1_title', 'Grow your career', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card1_text', 'Learn on real projects, take ownership early and move up as fast as your skills allow.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-card">
+        <div class="j-ico">🤝</div>
+        {{ eb('card2_title', 'Supportive team', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card2_text', 'Friendly, collaborative colleagues who share knowledge and celebrate wins together.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-card">
+        <div class="j-ico">💡</div>
+        {{ eb('card3_title', 'Room for ideas', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card3_text', 'Your ideas matter here. We encourage creativity and listen to fresh perspectives.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-card">
+        <div class="j-ico">⚖️</div>
+        {{ eb('card4_title', 'Work-life balance', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card4_text', 'Respectful schedules and a healthy culture so you can do your best work and recharge.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-card">
+        <div class="j-ico">📚</div>
+        {{ eb('card5_title', 'Keep learning', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card5_text', 'Training, mentoring and new challenges that keep you growing every month.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-card">
+        <div class="j-ico">🏆</div>
+        {{ eb('card6_title', 'Recognition', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('card6_text', 'Good work gets noticed and rewarded. We value results, effort and attitude.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="j-section">
+  <div class="j-wrap j-wrap--wide">
+    {{ eb('steps_heading', 'How hiring works', with_image=False, tag='h2', cls='j-h2') }}
+    {{ eb('steps_sub', 'A simple, transparent process from application to your first day.', with_image=False, tag='p', cls='j-sub') }}
+    <div class="j-steps">
+      <div class="j-step">
+        <span class="j-num">1</span>
+        {{ eb('step1_title', 'Apply online', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('step1_text', 'Fill in the short application form with your details and CV.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-step">
+        <span class="j-num">2</span>
+        {{ eb('step2_title', 'We review', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('step2_text', 'Our team carefully reviews every application that comes in.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-step">
+        <span class="j-num">3</span>
+        {{ eb('step3_title', 'Interview', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('step3_text', 'If there is a match, we will contact you for a friendly conversation.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+      <div class="j-step">
+        <span class="j-num">4</span>
+        {{ eb('step4_title', 'Join the team', with_image=False, tag='h3', cls='j-h3') }}
+        {{ eb('step4_text', 'Welcome aboard! We will help you settle in from day one.', with_image=False, tag='p', cls='j-cp') }}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSING CTA -->
+<section class="j-cta">
+  <div class="j-wrap">
+    {{ eb('cta_heading', 'Ready to take the next step?', with_image=False, tag='h2', cls='j-h2 j-h2--light') }}
+    {{ eb('cta_text', 'Even if you do not see a perfect role, send us your application. We keep every profile in mind for future openings.', with_image=False, tag='p', cls='j-sub j-sub--light') }}
+    <a class="j-btn j-btn--light" href="{{ APPLY_URL }}" target="_blank" rel="noopener noreferrer">Apply now</a>
   </div>
 </section>
 
@@ -75,16 +160,43 @@
 <style>
 .jobs{--j-brand:var(--brand);--j-accent:var(--accent);--j-ink:#12131a;--j-sub:#5b5f6b;--j-line:#e7e7ee;font-family:'Inter',system-ui,sans-serif;color:var(--j-ink)}
 .j-wrap{max-width:820px;margin:0 auto;padding:0 24px}
-.j-hero{padding:110px 0 120px;text-align:center}
+.j-wrap--wide{max-width:1080px}
+.j-hero{padding:110px 0 120px;text-align:center;background:radial-gradient(ellipse at top,rgba(0,0,0,.04),transparent 65%)}
+.j-badge{display:inline-block;margin-bottom:18px;padding:6px 16px;border-radius:999px;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--j-line);color:var(--j-brand)}
 .j-h{font-size:clamp(2rem,4.5vw,3rem);font-weight:800;line-height:1.15;margin:0 0 16px}
 .j-p{font-size:1.1rem;color:var(--j-sub);line-height:1.7;white-space:pre-line;margin:0 0 32px}
-.j-btn{display:inline-block;padding:.95em 2.2em;border-radius:10px;font-weight:700;text-decoration:none;font-size:1rem;background:var(--j-brand);color:#fff}
-.j-btn:hover{opacity:.9}
+.j-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.j-btn{display:inline-block;padding:.95em 2.2em;border-radius:10px;font-weight:700;text-decoration:none;font-size:1rem;background:var(--j-brand);color:#fff;transition:transform .15s,opacity .15s}
+.j-btn:hover{opacity:.9;transform:translateY(-2px)}
+.j-btn--ghost{background:transparent;color:var(--j-brand);border:2px solid var(--j-brand)}
+.j-btn--light{background:#fff;color:var(--j-brand)}
+
+.j-section{padding:90px 0}
+.j-alt{background:#f7f7fb}
+.j-h2{font-size:clamp(1.6rem,3.5vw,2.3rem);font-weight:800;line-height:1.2;margin:0 0 12px;text-align:center}
+.j-sub{font-size:1.05rem;color:var(--j-sub);line-height:1.7;margin:0 auto 48px;max-width:620px;text-align:center}
+.j-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.j-card{background:#fff;border:1px solid var(--j-line);border-radius:16px;padding:28px 24px;transition:transform .2s,box-shadow .2s}
+.j-card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(18,19,26,.08)}
+.j-ico{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:#f3f3f8;margin-bottom:16px}
+.j-h3{font-size:1.1rem;font-weight:700;margin:0 0 8px}
+.j-cp{font-size:.95rem;color:var(--j-sub);line-height:1.65;margin:0}
+
+.j-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;counter-reset:s}
+.j-step{text-align:center;padding:0 8px}
+.j-num{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;background:var(--j-brand);color:#fff;font-weight:800;font-size:1.1rem;margin-bottom:14px}
+
+.j-cta{padding:90px 0;text-align:center;background:var(--j-brand);color:#fff}
+.j-h2--light{color:#fff}
+.j-sub--light{color:rgba(255,255,255,.85);margin-bottom:32px}
+
+@media(max-width:900px){.j-grid{grid-template-columns:repeat(2,1fr)}.j-steps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.j-grid,.j-steps{grid-template-columns:1fr}.j-section,.j-cta{padding:60px 0}.j-hero{padding:80px 0}}
 
 .eb-save-btn{display:block;width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:var(--j-accent);color:#12131a;font-weight:700;font-size:.82rem;cursor:pointer}
 .eb-text[contenteditable]{outline:2px dashed transparent;cursor:text}
 .eb-text[contenteditable]:focus{outline:2px dashed var(--j-accent)}
-.eb-toolbar{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px;background:#f3f3f8;border-radius:8px;text-align:left}
+.eb-toolbar{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:8px;background:#f3f3f8;border-radius:8px;text-align:left;color:var(--j-ink)}
 .eb-style{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:.7rem}
 .eb-style__label{font-weight:700;width:66px;flex:0 0 auto;color:#5b5f6b}
 .eb-style select,.eb-style input[type=color]{font-size:.7rem;padding:2px 3px;border-radius:5px;border:1px solid var(--j-line);max-width:88px}
